@@ -14,8 +14,10 @@ namespace Core::Graphics {
         unsigned int height
       );
 
+      ~VulkanRenderWindow();
+
     private:
-      VkSurfaceKHR surface;
       Vulkan vulkan = Vulkan("Vulkan test application");
+      VkSurfaceKHR surface = VK_NULL_HANDLE;
   };
 }

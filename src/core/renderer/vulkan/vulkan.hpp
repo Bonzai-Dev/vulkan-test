@@ -1,5 +1,6 @@
 #pragma once
 #include <vulkan/vulkan.hpp>
+#include "device.hpp"
 #include "util.hpp"
 
 namespace Core::Graphics {
@@ -34,6 +35,8 @@ namespace Core::Graphics {
       std::vector<const char*> instanceLayers;
       VkInstance instance = VK_NULL_HANDLE;
       VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
+
+      VulkanDevice device{instance};
   };
 }
 

@@ -19,19 +19,16 @@ namespace Core::Graphics {
     vkEnumerateInstanceLayerProperties(&instanceLayerPropertyCount, instanceLayerProperties.data());
     for (size_t layerIndex = 0; layerIndex < instanceLayerPropertyCount; layerIndex++) {
       const std::string layerName = instanceLayerProperties[layerIndex].layerName;
-      LOG_CORE_DEBUG("Found instance layer: {}", layerName);
       if (Application::debugEnabled && layerName == "VK_LAYER_KHRONOS_validation") {
         validationLayersSupported = true;
         instanceLayers.push_back("VK_LAYER_KHRONOS_validation");
+        LOG_CORE_INFO("Validation layers enabled.");
       }
+      LOG_CORE_DEBUG("Found instance layer: \"{}\"", layerName);
     }
 
-    if (validationLayersEnabled() && instanceLayers.empty() && Application::debugEnabled)
-      LOG_CORE_WARNING("Validation layers were requested but not found. Validation will be disabled.");
-    else
-      LOG_CORE_DEBUG("Validation layers enabled.");
-
     createInstance(appName, getExtensions(), instanceLayers);
+    device.initialize(0);
   }
 
   Vulkan::~Vulkan() {
@@ -84,7 +81,8 @@ namespace Core::Graphics {
     VULKAN_CHECK(vkCreateInstance(&createInfo, nullptr, &instance));
     volkLoadInstanceOnly(instance);
 
-    VULKAN_CHECK(vkCreateDebugUtilsMessengerEXT(instance, &debugMessengerCreateInfo, nullptr, &debugMessenger));
+    if (validationLayersEnabled())
+      VULKAN_CHECK(vkCreateDebugUtilsMessengerEXT(instance, &debugMessengerCreateInfo, nullptr, &debugMessenger));
   }
 
   std::vector<const char*> Vulkan::getExtensions() {
@@ -98,6 +96,12 @@ namespace Core::Graphics {
 
     if (validationLayersEnabled())
       extensionList.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
+    if (Application::debugEnabled) {
+      for (auto &extension : extensionList)
+        LOG_CORE_DEBUG("Found extension: \"{}\"", extension);
+    }
+
 
     foundExtensions = true;
     return extensionList;
