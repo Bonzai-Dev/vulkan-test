@@ -28,7 +28,7 @@ namespace Core::Graphics {
     }
 
     createInstance(appName, getExtensions(), instanceLayers);
-    currentDevice.initialize(0);
+
   }
 
   VulkanContext::~VulkanContext() {
@@ -85,6 +85,34 @@ namespace Core::Graphics {
       VULKAN_CHECK(vkCreateDebugUtilsMessengerEXT(instance, &debugMessengerCreateInfo, nullptr, &debugMessenger));
   }
 
+  std::vector<VulkanDevice> VulkanContext::getDevices() {
+    static bool deviceFetched = false;
+    static std::vector<VulkanDevice> devices;
+
+    if (deviceFetched)
+      return devices;
+
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+    if (deviceCount == 0) {
+      LOG_CORE_CRITICAL("Cannot find any GPUs with Vulkan support.");
+      return devices;
+    }
+
+    devices.resize(deviceCount);
+
+    for (size_t deviceIndex = 0; deviceIndex < deviceCount; deviceIndex++) {
+      uint32_t deviceCount = devices.size();
+      VulkanDevice device {instance};
+      device.initialize(deviceIndex, deviceCount);
+      devices.push_back(device);
+    }
+
+    deviceFetched = true;
+
+    return devices;
+  }
+
   std::vector<const char*> VulkanContext::getExtensions() {
     static bool foundExtensions = false;
     static uint32_t extensionCount = 0;
@@ -94,12 +122,14 @@ namespace Core::Graphics {
     if (foundExtensions)
       return extensionList;
 
-    if (validationLayersEnabled())
+    if (validationLayersEnabled()) {
       extensionList.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+      extensionList.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+    }
 
     if (Application::debugEnabled) {
       for (auto &extension: extensionList)
-        LOG_CORE_DEBUG("Found extension: \"{}\"", extension);
+        LOG_CORE_DEBUG("Found extension \"{}\"", extension);
     }
 
     foundExtensions = true;
@@ -134,5 +164,25 @@ namespace Core::Graphics {
     }
 
     return VK_FALSE;
+  }
+
+  int VulkanContext::rateDevice(const VulkanDevice &device) {
+    int score = 0;
+
+    const VkPhysicalDeviceProperties deviceProperties = device.getProperties();
+    const VkPhysicalDeviceFeatures deviceFeatures = device.getFeatures();
+
+    // Discrete GPUs have a significant performance advantage
+    if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+      score += 1000;
+
+    // Maximum possible size of textures affects graphics quality
+    score += deviceProperties.limits.maxImageDimension2D;
+
+    // Application can't function without geometry shaders
+    if (!deviceFeatures.geometryShader)
+      return 0;
+
+    return score;
   }
 }

@@ -10,9 +10,13 @@ namespace Core::Graphics {
 
       ~VulkanDevice();
 
-      void initialize(std::uint32_t deviceId);
+      void initialize(std::uint32_t deviceId, std::uint32_t deviceCount);
 
       const char *getName() const { return deviceProperties.deviceName; }
+
+      const VkPhysicalDeviceProperties &getProperties() const { return deviceProperties; }
+
+      const VkPhysicalDeviceFeatures &getFeatures() const { return deviceFeatures; }
 
       std::vector<const char *> getExtensions() const;
 
@@ -35,7 +39,7 @@ namespace Core::Graphics {
 
       std::vector<VulkanQueue> findTransferQueues(std::vector<std::uint32_t> &usedQueueCount) const;
 
-      void createPhysicalDevice(std::uint32_t deviceId);
+      void createPhysicalDevice(std::uint32_t deviceId, std::uint32_t deviceCount);
 
       void createLogicalDevice();
 

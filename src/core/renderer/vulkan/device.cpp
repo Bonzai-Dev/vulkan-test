@@ -14,27 +14,19 @@ namespace Core::Graphics {
       vkDestroyDevice(logicalDevice, nullptr);
   }
 
-  void VulkanDevice::initialize(std::uint32_t deviceId) {
-    createPhysicalDevice(deviceId);
+  void VulkanDevice::initialize(std::uint32_t deviceId, std::uint32_t deviceCount) {
+    createPhysicalDevice(deviceId, deviceCount);
     createLogicalDevice();
   }
 
-  void VulkanDevice::createPhysicalDevice(std::uint32_t deviceId) {
-    uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(vulkanInstance, &deviceCount, nullptr);
-    if (deviceCount == 0) {
-      LOG_CORE_CRITICAL("Cannot find any GPUs with Vulkan support.");
-      return;
-    }
-
+  void VulkanDevice::createPhysicalDevice(std::uint32_t deviceId, std::uint32_t deviceCount) {
     if (deviceId >= deviceCount) {
       LOG_CORE_WARNING("Requested device index {} but there's only {} devices.", deviceId, deviceCount);
       deviceId = 0;
     }
 
-    std::vector<VkPhysicalDevice> devices(deviceCount);
-    vkEnumeratePhysicalDevices(vulkanInstance, &deviceCount, devices.data());
-    physicalDevice = devices[deviceId];
+    std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
+    vkEnumeratePhysicalDevices(vulkanInstance, &deviceCount, physicalDevices.data());
 
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
     vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);

@@ -20,6 +20,10 @@ namespace Core::Graphics {
 
       const VulkanDevice &getDevice() const { return currentDevice; }
 
+      std::vector<VulkanDevice> getDevices();
+
+      int rateDevice(const VulkanDevice &device);
+
     private:
       void createInstance(
         const char *appName,
