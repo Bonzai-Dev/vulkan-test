@@ -1,16 +1,17 @@
 #include <core/application/logger.hpp>
-#include "vulkan.hpp"
-#include "volk.h"
 #include "device.hpp"
+#include "context.hpp"
+#include "queue.hpp"
 
 namespace Core::Graphics {
-  VulkanDevice::VulkanDevice(const VkInstance &vulkanInstance) : vulkanInstance(vulkanInstance) {
-
+  VulkanDevice::VulkanDevice(const VkInstance &vulkan) :
+  vulkanInstance(vulkan) {
   }
 
   VulkanDevice::~VulkanDevice() {
     physicalDevice = nullptr;
-    vkDestroyDevice(logicalDevice, nullptr);
+    if (logicalDevice)
+      vkDestroyDevice(logicalDevice, nullptr);
   }
 
   void VulkanDevice::initialize(std::uint32_t deviceId) {
@@ -60,7 +61,6 @@ namespace Core::Graphics {
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
     queueFamilyProperties.resize(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilyProperties.data());
-    LOG_CORE_ERROR(queueFamilyProperties.size());
   }
 
   void VulkanDevice::createLogicalDevice() {
@@ -79,7 +79,7 @@ namespace Core::Graphics {
     transferQueues = findTransferQueues(usedQueuesCount);
 
     for (size_t queueIndex = 0; queueIndex < queueFamilyCount; queueIndex++) {
-      VkDeviceQueueCreateInfo deviceQueueCreateInfo{
+      const VkDeviceQueueCreateInfo deviceQueueCreateInfo{
         .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
         .queueFamilyIndex = static_cast<std::uint32_t>(queueIndex),
         .queueCount = usedQueuesCount[queueIndex]
@@ -100,7 +100,7 @@ namespace Core::Graphics {
     const VkDeviceCreateInfo deviceCreateInfo{
       .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
       .queueCreateInfoCount = static_cast<std::uint32_t>(queuesCreateInfo.size()),
-      .pQueueCreateInfos = &queuesCreateInfo[0],
+      .pQueueCreateInfos = queuesCreateInfo.data(),
       .enabledExtensionCount = static_cast<std::uint32_t>(deviceExtensions.size()),
       .ppEnabledExtensionNames = deviceExtensions.data(),
       .pEnabledFeatures = &deviceFeatures
@@ -109,6 +109,26 @@ namespace Core::Graphics {
     VULKAN_CHECK(vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice));
 
     volkLoadDevice(logicalDevice);
+
+    initializeQueues();
+  }
+
+  void VulkanDevice::initializeQueues() {
+    // VkQueue graphicsQueue = VK_NULL_HANDLE;
+    // vkGetDeviceQueue(
+    //   logicalDevice, this->graphicsQueue.familyIndex, this->graphicsQueue.queueIndex, &graphicsQueue
+    // );
+    // this->graphicsQueue.initialize(*this, graphicsQueue, vulkan.renderWindow.getBufferedFrameCount());
+    //
+    // for (auto &computeQueue: computeQueues) {
+    //   vkGetDeviceQueue(logicalDevice, computeQueue.familyIndex, computeQueue.queueIndex, &computeQueue.queue);
+    //   computeQueue.initialize(*this, computeQueue.queue, vulkan.renderWindow.getBufferedFrameCount());
+    // }
+    //
+    // for (auto &transferQueue: transferQueues) {
+    //   vkGetDeviceQueue(logicalDevice, transferQueue.familyIndex, transferQueue.queueIndex, &transferQueue.queue);
+    //   transferQueue.initialize(*this, transferQueue.queue, vulkan.renderWindow.getBufferedFrameCount());
+    // }
   }
 
   std::vector<const char*> VulkanDevice::getExtensions() const {
@@ -147,7 +167,7 @@ namespace Core::Graphics {
       }
 #endif
 
-      if (Vulkan::validationLayersEnabled())
+      if (VulkanContext::validationLayersEnabled())
         extensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
 
       extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);

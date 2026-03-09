@@ -5,16 +5,11 @@
 #include "render_window.hpp"
 
 namespace Core::Graphics {
-  RenderWindow::RenderWindow(
-    const char *windowName,
-    bool mouseLocked,
-    bool fullScreen,
-    unsigned int width,
-    unsigned int height
-  ) : width(width), height(height) {
+  RenderWindow::RenderWindow(const WindowOptions &options) : options(options) {
     SDL_WindowFlags flags = 0;
-    if (fullScreen)
+    if (options.fullScreen)
       flags |= SDL_WINDOW_FULLSCREEN;
+
     switch (Application::getGraphicsBackend()) {
       case Backend::Vulkan:
         flags |= SDL_WINDOW_VULKAN;
@@ -25,8 +20,8 @@ namespace Core::Graphics {
     }
 
     window = SDL_CreateWindow(
-      windowName,
-      width, height,
+      options.windowName,
+      options.width, options.height,
       flags
     );
 
@@ -35,7 +30,7 @@ namespace Core::Graphics {
       return;
     }
 
-    SDL_SetWindowRelativeMouseMode(window, mouseLocked);
+    SDL_SetWindowRelativeMouseMode(window, options.mouseLocked);
   }
 
   RenderWindow::~RenderWindow() {

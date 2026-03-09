@@ -3,10 +3,10 @@
 #include <core/application/logger.hpp>
 #include <core/application/application.hpp>
 #include "volk.h"
-#include "vulkan.hpp"
+#include "context.hpp"
 
 namespace Core::Graphics {
-  Vulkan::Vulkan(const char *appName) {
+  VulkanContext::VulkanContext(const char *appName) {
     if (volkInitialize() != VK_SUCCESS) {
       LOG_CORE_CRITICAL("Failed to load Vulkan. Vulkan drivers may be missing on your system.");
       return;
@@ -28,15 +28,15 @@ namespace Core::Graphics {
     }
 
     createInstance(appName, getExtensions(), instanceLayers);
-    device.initialize(0);
+    currentDevice.initialize(0);
   }
 
-  Vulkan::~Vulkan() {
+  VulkanContext::~VulkanContext() {
     if (debugMessenger)
       vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
   }
 
-  void Vulkan::createInstance(
+  void VulkanContext::createInstance(
     const char *appName,
     const std::vector<const char*> &extensions,
     const std::vector<const char*> &layers
@@ -72,7 +72,7 @@ namespace Core::Graphics {
         .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
                        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-        .pfnUserCallback = &Vulkan::debugCallback,
+        .pfnUserCallback = &VulkanContext::debugCallback,
         .pUserData = nullptr
       };
       createInfo.pNext = &debugMessengerCreateInfo;
@@ -85,7 +85,7 @@ namespace Core::Graphics {
       VULKAN_CHECK(vkCreateDebugUtilsMessengerEXT(instance, &debugMessengerCreateInfo, nullptr, &debugMessenger));
   }
 
-  std::vector<const char*> Vulkan::getExtensions() {
+  std::vector<const char*> VulkanContext::getExtensions() {
     static bool foundExtensions = false;
     static uint32_t extensionCount = 0;
     static char const *const*extensions = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
@@ -98,16 +98,15 @@ namespace Core::Graphics {
       extensionList.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
     if (Application::debugEnabled) {
-      for (auto &extension : extensionList)
+      for (auto &extension: extensionList)
         LOG_CORE_DEBUG("Found extension: \"{}\"", extension);
     }
-
 
     foundExtensions = true;
     return extensionList;
   }
 
-  VkBool32 Vulkan::debugCallback(
+  VkBool32 VulkanContext::debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     const VkDebugUtilsMessengerCallbackDataEXT *callbackData,

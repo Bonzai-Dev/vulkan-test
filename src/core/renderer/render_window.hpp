@@ -7,6 +7,10 @@
 // Unlike the Window class which contains the RenderWindow class, this class has low level control
 // over the low level rendering of the window and is used by the Window class to render the window.
 
+namespace Core {
+  struct WindowOptions;
+}
+
 namespace Core::Graphics {
   enum class Backend {
     None,
@@ -15,19 +19,12 @@ namespace Core::Graphics {
 
   class RenderWindow {
     public:
-      RenderWindow(
-        const char *windowName,
-        bool mouseLocked,
-        bool fullScreen,
-        unsigned int width,
-        unsigned int height
-      );
+      RenderWindow(const WindowOptions &options);
 
       ~RenderWindow();
 
     protected:
-      int width = 0;
-      int height = 0;
+      const WindowOptions &options;
       SDL_Window *window = nullptr;
   };
 }

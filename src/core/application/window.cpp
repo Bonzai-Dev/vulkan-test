@@ -12,12 +12,18 @@ namespace Core {
     unsigned int height
   ) {
     switch (Application::getGraphicsBackend()) {
-      case Graphics::Backend::Vulkan:
+      case Graphics::Backend::Vulkan: {
         LOG_CORE_INFO("Rendering application with Vulkan.");
-        renderWindow = std::make_shared<Graphics::VulkanRenderWindow>(
-          windowName, mouseLocked, fullScreen, width, height
-        );
+        WindowOptions options{
+          .mouseLocked = mouseLocked,
+          .fullScreen = fullScreen,
+          .width = width,
+          .height = height,
+          .windowName = windowName
+        };
+        renderWindow = std::make_shared<Graphics::VulkanRenderWindow>(options);
         break;
+      }
 
       default:
         LOG_CORE_ERROR("Unsupported graphics backend.");

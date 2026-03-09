@@ -3,6 +3,17 @@
 #include <core/renderer/render_window.hpp>
 
 namespace Core {
+  struct WindowOptions {
+    bool mouseLocked = false;
+    bool fullScreen = false;
+    bool vsync = false;
+
+    std::uint32_t width = 800;
+    std::uint32_t height = 600;
+
+    const char *windowName;
+  };
+
   class Window {
     public:
       Window(

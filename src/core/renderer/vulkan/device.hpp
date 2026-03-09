@@ -1,11 +1,12 @@
 #pragma once
-#include <vulkan/vulkan.hpp>
 #include "queue.hpp"
 
 namespace Core::Graphics {
+  class VulkanQueue;
+
   class VulkanDevice {
     public:
-      VulkanDevice(const VkInstance &vulkanInstance);
+      VulkanDevice(const VkInstance &vulkan);
 
       ~VulkanDevice();
 
@@ -14,6 +15,18 @@ namespace Core::Graphics {
       const char *getName() const { return deviceProperties.deviceName; }
 
       std::vector<const char *> getExtensions() const;
+
+      VkPhysicalDevice getPhysicalDevice() const { return physicalDevice; }
+
+      VkDevice getDevice() const { return logicalDevice; }
+
+      const VulkanQueue &getGraphicsQueue() const { return graphicsQueue; }
+
+      const std::vector<VulkanQueue> &getComputeQueues() const { return computeQueues; }
+
+      const std::vector<VulkanQueue> &getTransferQueues() const { return transferQueues; }
+
+      void initializeQueues();
 
     private:
       VulkanQueue findGraphicsQueue(std::vector<std::uint32_t> &usedQueuesCount) const;
@@ -42,10 +55,10 @@ namespace Core::Graphics {
       VkQueue presentQueue = VK_NULL_HANDLE;
       // Graphics queue is *guaranteed by spec* to also be able to run compute and transfer
       // A GPU may not have a graphics queue though (renderer can't run there)
-      // VulkanQueue graphicsQueue;
+      VulkanQueue graphicsQueue{VulkanQueue::Type::Graphics, 0, 0};
       // Additional compute queues to run async compute (besides the main graphics one)
-      // std::vector<VulkanQueue> computeQueues;
-      // // Additional transfer queues to run async transfers (besides the main graphics one)
-      // std::vector<VulkanQueue> transferQueues;
+      std::vector<VulkanQueue> computeQueues;
+      // Additional transfer queues to run async transfers (besides the main graphics one)
+      std::vector<VulkanQueue> transferQueues;
   };
 }
