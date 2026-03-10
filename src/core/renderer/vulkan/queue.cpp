@@ -29,7 +29,7 @@ namespace Core::Graphics {
       .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
       .commandBufferCount = 1
     };
-LOG_CORE_DEBUG(bufferedFrameCount);
+    LOG_CORE_DEBUG(bufferedFrameCount);
     frameData.resize(bufferedFrameCount);
     for (auto &[commandPool, commandBuffer]: frameData) {
       VULKAN_CHECK(

@@ -1,6 +1,6 @@
 #include <glm/glm.hpp>
 #include <core/application/logger.hpp>
-#include <core/renderer/vulkan/render_window.hpp>
+#include <core/renderer/render_context.hpp>
 #include "window.hpp"
 #include "application.hpp"
 
@@ -19,10 +19,26 @@ namespace Core {
     else
       LOG_CORE_WARNING("No displays found.");
 
+    const Graphics::Backend backend = Graphics::Backend::Vulkan;
+    switch (backend) {
+      case  Graphics::Backend::Vulkan:
+        break;
+
+      default:
+        LOG_CORE_CRITICAL("No suitable graphics backend found.");
+        break;
+    }
+    // renderContext = std::make_shared<Vu>("Vulkan test");
     currentDisplay = SDL_GetCurrentDisplayMode(displays[0]);
-    mainWindow = std::make_shared<Window>(
-      name, true, true, currentDisplay->w, currentDisplay->h
-    );
+
+    const WindowOptions options {
+      .mouseLocked = true,
+      .fullScreen = true,
+      .vsync =  true,
+      .width = static_cast<std::uint32_t>(currentDisplay->w),
+      .height = static_cast<std::uint32_t>(currentDisplay->h)
+    };
+    mainWindow = std::make_shared<Window>(options);
 
     running = true;
     run();

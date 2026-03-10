@@ -1,8 +1,7 @@
 #include <core/application/logger.hpp>
 #include "util.hpp"
 #include "queue.hpp"
-#include "context.hpp"
-#include "render_window.hpp"
+#include "render_context.hpp"
 #include "device.hpp"
 
 namespace Core::Graphics {

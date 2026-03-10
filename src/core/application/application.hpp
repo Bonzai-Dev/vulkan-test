@@ -5,6 +5,7 @@
 #include <glm/gtc/constants.hpp>
 #include <glm/glm.hpp>
 #include <core/application/logger.hpp>
+#include <core/renderer/render_context.hpp>
 #include "window.hpp"
 #include "render_layer.hpp"
 #include "inputs.hpp"
@@ -50,6 +51,8 @@ namespace Core {
       Logger logger;
 
       static inline Graphics::Backend graphicsBackend;
+
+      std::shared_ptr<Graphics::RenderContext> renderContext;
 
       mutable double deltaTime = 0;
       mutable glm::vec2 mouseDelta = glm::zero<glm::vec2>();
