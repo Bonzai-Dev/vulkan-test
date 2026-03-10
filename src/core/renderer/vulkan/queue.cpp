@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <core/application/logger.hpp>
 #include "volk.h"
+#include "util.hpp"
 #include "queue.hpp"
 
 namespace Core::Graphics {
@@ -29,12 +30,12 @@ namespace Core::Graphics {
       .commandBufferCount = 1
     };
 LOG_CORE_DEBUG(bufferedFrameCount);
-    // frameData.resize(bufferedFrameCount);
-    // for (auto &[commandPool, commandBuffer]: frameData) {
-    //   VULKAN_CHECK(
-    //     vkCreateCommandPool(device.getDevice(), &commandPoolCreateInfo, nullptr, &commandPool)
-    //   );
-    //   VULKAN_CHECK(vkAllocateCommandBuffers(device.getDevice(), &allocateInfo, &commandBuffer));
-    // }
+    frameData.resize(bufferedFrameCount);
+    for (auto &[commandPool, commandBuffer]: frameData) {
+      VULKAN_CHECK(
+        vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &commandPool)
+      );
+      VULKAN_CHECK(vkAllocateCommandBuffers(device, &allocateInfo, &commandBuffer));
+    }
   }
 }

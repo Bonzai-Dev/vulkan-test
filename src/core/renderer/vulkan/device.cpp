@@ -1,11 +1,14 @@
 #include <core/application/logger.hpp>
-#include "device.hpp"
-#include "context.hpp"
+#include "util.hpp"
 #include "queue.hpp"
+#include "context.hpp"
+#include "render_window.hpp"
+#include "device.hpp"
 
 namespace Core::Graphics {
-  VulkanDevice::VulkanDevice(const VkInstance &vulkan) :
-  vulkanInstance(vulkan) {
+  class VulkanContext;
+
+  VulkanDevice::VulkanDevice() {
   }
 
   VulkanDevice::~VulkanDevice() {
@@ -14,33 +17,11 @@ namespace Core::Graphics {
       vkDestroyDevice(logicalDevice, nullptr);
   }
 
-  void VulkanDevice::initialize(std::uint32_t deviceId, std::uint32_t deviceCount) {
-    createPhysicalDevice(deviceId, deviceCount);
-    createLogicalDevice();
-  }
-
-  void VulkanDevice::createPhysicalDevice(std::uint32_t deviceId, std::uint32_t deviceCount) {
-    if (deviceId >= deviceCount) {
-      LOG_CORE_WARNING("Requested device index {} but there's only {} devices.", deviceId, deviceCount);
-      deviceId = 0;
-    }
-
-    std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
-    vkEnumeratePhysicalDevices(vulkanInstance, &deviceCount, physicalDevices.data());
-
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
-    vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
-    vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
-
-    LOG_CORE_INFO("Rendering using {}.", getName());
-
-    const std::uint32_t version = deviceProperties.apiVersion;
-    LOG_CORE_DEBUG(
-      "{} supports Vulkan up to {}.{}.{}.",
-      getName(),
-      VK_VERSION_MAJOR(version), VK_VERSION_MINOR(version),
-      VK_VERSION_PATCH(version)
-    );
+  void VulkanDevice::createPhysicalDevice(VkPhysicalDevice physicalDevice) {
+    this->physicalDevice = physicalDevice;
+    vkGetPhysicalDeviceMemoryProperties(this->physicalDevice, &deviceMemoryProperties);
+    vkGetPhysicalDeviceProperties(this->physicalDevice, &deviceProperties);
+    vkGetPhysicalDeviceFeatures(this->physicalDevice, &deviceFeatures);
 
     if (!deviceFeatures.geometryShader)
       supportedStages ^= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
@@ -106,21 +87,22 @@ namespace Core::Graphics {
   }
 
   void VulkanDevice::initializeQueues() {
-    // VkQueue graphicsQueue = VK_NULL_HANDLE;
-    // vkGetDeviceQueue(
-    //   logicalDevice, this->graphicsQueue.familyIndex, this->graphicsQueue.queueIndex, &graphicsQueue
-    // );
-    // this->graphicsQueue.initialize(*this, graphicsQueue, vulkan.renderWindow.getBufferedFrameCount());
-    //
-    // for (auto &computeQueue: computeQueues) {
-    //   vkGetDeviceQueue(logicalDevice, computeQueue.familyIndex, computeQueue.queueIndex, &computeQueue.queue);
-    //   computeQueue.initialize(*this, computeQueue.queue, vulkan.renderWindow.getBufferedFrameCount());
-    // }
-    //
-    // for (auto &transferQueue: transferQueues) {
-    //   vkGetDeviceQueue(logicalDevice, transferQueue.familyIndex, transferQueue.queueIndex, &transferQueue.queue);
-    //   transferQueue.initialize(*this, transferQueue.queue, vulkan.renderWindow.getBufferedFrameCount());
-    // }
+    const std::uint32_t frameBufferCount = VulkanContext::getFrameBufferCount();
+    VkQueue graphicsQueue = VK_NULL_HANDLE;
+    vkGetDeviceQueue(
+      logicalDevice, this->graphicsQueue.familyIndex, this->graphicsQueue.queueIndex, &graphicsQueue
+    );
+    this->graphicsQueue.initialize(logicalDevice, graphicsQueue, frameBufferCount);
+
+    for (auto &computeQueue: computeQueues) {
+      vkGetDeviceQueue(logicalDevice, computeQueue.familyIndex, computeQueue.queueIndex, &computeQueue.queue);
+      computeQueue.initialize(logicalDevice, computeQueue.queue, frameBufferCount);
+    }
+
+    for (auto &transferQueue: transferQueues) {
+      vkGetDeviceQueue(logicalDevice, transferQueue.familyIndex, transferQueue.queueIndex, &transferQueue.queue);
+      transferQueue.initialize(logicalDevice, transferQueue.queue, frameBufferCount);
+    }
   }
 
   std::vector<const char*> VulkanDevice::getExtensions() const {

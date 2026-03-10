@@ -2,11 +2,13 @@
 #include <SDL3/SDL_vulkan.h>
 #include <core/application/logger.hpp>
 #include <core/application/application.hpp>
+#include <map>
 #include "volk.h"
 #include "context.hpp"
 
 namespace Core::Graphics {
-  VulkanContext::VulkanContext(const char *appName) {
+  VulkanContext::VulkanContext(const char *appName, std::uint32_t frameBufferCount) {
+    this->frameBufferCount = frameBufferCount;
     if (volkInitialize() != VK_SUCCESS) {
       LOG_CORE_CRITICAL("Failed to load Vulkan. Vulkan drivers may be missing on your system.");
       return;
@@ -28,7 +30,24 @@ namespace Core::Graphics {
     }
 
     createInstance(appName, getExtensions(), instanceLayers);
+    std::vector<VulkanDevice> devices = getDevices();
+    if (devices.empty()) {
+      LOG_CORE_CRITICAL("No suitable Vulkan devices found. Cannot continue.");
+      return;
+    }
 
+    currentDevice = chooseDevice(devices);
+    currentDevice.createLogicalDevice();
+
+    LOG_CORE_INFO("Rendering using {}.", currentDevice.getName());
+
+    const std::uint32_t version = currentDevice.getProperties().apiVersion;
+    LOG_CORE_DEBUG(
+      "{} supports Vulkan up to {}.{}.{}.",
+      currentDevice.getName(),
+      VK_VERSION_MAJOR(version), VK_VERSION_MINOR(version),
+      VK_VERSION_PATCH(version)
+    );
   }
 
   VulkanContext::~VulkanContext() {
@@ -85,27 +104,28 @@ namespace Core::Graphics {
       VULKAN_CHECK(vkCreateDebugUtilsMessengerEXT(instance, &debugMessengerCreateInfo, nullptr, &debugMessenger));
   }
 
-  std::vector<VulkanDevice> VulkanContext::getDevices() {
+  const std::vector<VulkanDevice> &VulkanContext::getDevices() const {
     static bool deviceFetched = false;
     static std::vector<VulkanDevice> devices;
 
     if (deviceFetched)
       return devices;
 
+    std::vector<VkPhysicalDevice> physicalDevices;
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
     if (deviceCount == 0) {
       LOG_CORE_CRITICAL("Cannot find any GPUs with Vulkan support.");
       return devices;
     }
-
-    devices.resize(deviceCount);
+    physicalDevices.resize(deviceCount);
+    vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data());
 
     for (size_t deviceIndex = 0; deviceIndex < deviceCount; deviceIndex++) {
-      uint32_t deviceCount = devices.size();
-      VulkanDevice device {instance};
-      device.initialize(deviceIndex, deviceCount);
+      VulkanDevice device;
+      device.createPhysicalDevice(physicalDevices[deviceIndex]);
       devices.push_back(device);
+      LOG_CORE_INFO("Found {}", devices[deviceIndex].getName());
     }
 
     deviceFetched = true;
@@ -134,6 +154,14 @@ namespace Core::Graphics {
 
     foundExtensions = true;
     return extensionList;
+  }
+
+  const VulkanDevice &VulkanContext::chooseDevice(const std::vector<VulkanDevice> &devices) {
+    std::map<int, const VulkanDevice*> deviceRankings;
+    for (auto &device: devices)
+      deviceRankings.insert({rateDevice(device), &device});
+
+    return *deviceRankings.rbegin()->second;
   }
 
   VkBool32 VulkanContext::debugCallback(
@@ -177,7 +205,7 @@ namespace Core::Graphics {
       score += 1000;
 
     // Maximum possible size of textures affects graphics quality
-    score += deviceProperties.limits.maxImageDimension2D;
+    score += static_cast<int>(deviceProperties.limits.maxImageDimension2D);
 
     // Application can't function without geometry shaders
     if (!deviceFeatures.geometryShader)

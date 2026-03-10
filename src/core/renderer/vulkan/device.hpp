@@ -2,15 +2,19 @@
 #include "queue.hpp"
 
 namespace Core::Graphics {
+  class VulkanRenderWindow;
+
   class VulkanQueue;
 
   class VulkanDevice {
     public:
-      VulkanDevice(const VkInstance &vulkan);
+      VulkanDevice();
 
       ~VulkanDevice();
 
-      void initialize(std::uint32_t deviceId, std::uint32_t deviceCount);
+      void createPhysicalDevice(VkPhysicalDevice physicalDevice);
+
+      void createLogicalDevice();
 
       const char *getName() const { return deviceProperties.deviceName; }
 
@@ -38,12 +42,6 @@ namespace Core::Graphics {
       std::vector<VulkanQueue> findComputeQueue(std::vector<std::uint32_t> &usedQueuesCount) const;
 
       std::vector<VulkanQueue> findTransferQueues(std::vector<std::uint32_t> &usedQueueCount) const;
-
-      void createPhysicalDevice(std::uint32_t deviceId, std::uint32_t deviceCount);
-
-      void createLogicalDevice();
-
-      const VkInstance &vulkanInstance;
 
       VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
       VkDevice logicalDevice = VK_NULL_HANDLE;

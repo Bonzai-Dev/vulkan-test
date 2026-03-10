@@ -8,9 +8,11 @@ namespace Core::Graphics {
 
   class VulkanContext {
     public:
-      VulkanContext(const char *appName);
+      VulkanContext(const char *appName, std::uint32_t frameBufferCount);
 
       ~VulkanContext();
+
+      static std::uint32_t getFrameBufferCount() { return frameBufferCount; }
 
       static std::vector<const char*> getExtensions();
 
@@ -18,9 +20,9 @@ namespace Core::Graphics {
 
       VkInstance getInstance() const { return instance; }
 
-      const VulkanDevice &getDevice() const { return currentDevice; }
+      const VulkanDevice &getCurrentDevice() const { return currentDevice; }
 
-      std::vector<VulkanDevice> getDevices();
+      const std::vector<VulkanDevice> &getDevices() const;
 
       int rateDevice(const VulkanDevice &device);
 
@@ -31,6 +33,8 @@ namespace Core::Graphics {
         const std::vector<const char*> &layers
       );
 
+      const VulkanDevice &chooseDevice(const std::vector<VulkanDevice> &devices);
+
       static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -40,19 +44,12 @@ namespace Core::Graphics {
 
       static inline bool validationLayersSupported;
 
+      static inline std::uint32_t frameBufferCount;
+
       std::vector<const char*> instanceLayers;
       VkInstance instance = VK_NULL_HANDLE;
       VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 
-      VulkanDevice currentDevice{instance};
+      VulkanDevice currentDevice;
   };
-}
-
-#define VULKAN_CHECK(vkcall) { \
-VkResult result = vkcall; \
-if (result != VK_SUCCESS) { \
-std::string vkfunc = #vkcall; \
-vkfunc = vkfunc.substr(0, vkfunc.find('(')); \
-throw std::runtime_error("Vulkan error: " + vkfunc + " failed with " + vulkanResultToString(result)); \
-} \
 }

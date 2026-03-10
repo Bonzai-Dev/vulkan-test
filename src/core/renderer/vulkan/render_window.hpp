@@ -37,8 +37,8 @@ namespace Core::Graphics {
 
       VkPresentModeKHR choosePresentMode() const;
 
-      VulkanContext vulkan = VulkanContext("Vulkan render window");
-      const VulkanDevice &vulkanDevice = vulkan.getDevice();
+      VulkanContext vulkan = VulkanContext("Vulkan render window", 2);
+      const VulkanDevice &vulkanDevice = vulkan.getCurrentDevice();
 
       VkSurfaceKHR surface = VK_NULL_HANDLE;
       VkSwapchainKHR swapChain = VK_NULL_HANDLE;
