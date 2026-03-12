@@ -5,9 +5,48 @@
 #include "device.hpp"
 
 namespace Core::Graphics {
-  class VulkanContext;
+  class VulkanRenderContext;
 
   VulkanDevice::VulkanDevice() {
+  }
+
+  VulkanDevice::VulkanDevice(VulkanDevice &&other) noexcept:
+  physicalDevice(other.physicalDevice),
+  logicalDevice(other.logicalDevice),
+  deviceProperties(std::move(other.deviceProperties)),
+  deviceMemoryProperties(std::move(other.deviceMemoryProperties)),
+  deviceFeatures(std::move(other.deviceFeatures)),
+  supportedStages(other.supportedStages),
+  queueFamilyProperties(std::move(other.queueFamilyProperties)),
+  presentQueue(other.presentQueue),
+  graphicsQueue(std::move(other.graphicsQueue)),
+  computeQueues(std::move(other.computeQueues)),
+  transferQueues(std::move(other.transferQueues)) {
+    other.physicalDevice = VK_NULL_HANDLE;
+    other.logicalDevice = VK_NULL_HANDLE;
+    other.presentQueue = VK_NULL_HANDLE;
+  }
+
+  VulkanDevice &VulkanDevice::operator=(VulkanDevice &&other) noexcept {
+    if (this != &other) {
+      physicalDevice = other.physicalDevice;
+      logicalDevice = other.logicalDevice;
+      deviceProperties = std::move(other.deviceProperties);
+      deviceMemoryProperties = std::move(other.deviceMemoryProperties);
+      deviceFeatures = std::move(other.deviceFeatures);
+      supportedStages = other.supportedStages;
+      queueFamilyProperties = std::move(other.queueFamilyProperties);
+      graphicsQueue = std::move(other.graphicsQueue);
+      computeQueues = std::move(other.computeQueues);
+      transferQueues = std::move(other.transferQueues);
+      presentQueue = other.presentQueue;
+
+      other.physicalDevice = VK_NULL_HANDLE;
+      other.logicalDevice = VK_NULL_HANDLE;
+      other.presentQueue = VK_NULL_HANDLE;
+    }
+
+    return *this;
   }
 
   VulkanDevice::~VulkanDevice() {
@@ -86,7 +125,7 @@ namespace Core::Graphics {
   }
 
   void VulkanDevice::initializeQueues() {
-    const std::uint32_t frameBufferCount = VulkanContext::getFrameBufferCount();
+    const std::uint32_t frameBufferCount = VulkanRenderContext::getFrameBufferCount();
     VkQueue graphicsQueue = VK_NULL_HANDLE;
     vkGetDeviceQueue(
       logicalDevice, this->graphicsQueue.familyIndex, this->graphicsQueue.queueIndex, &graphicsQueue
@@ -140,7 +179,7 @@ namespace Core::Graphics {
       }
 #endif
 
-      if (VulkanContext::validationLayersEnabled())
+      if (VulkanRenderContext::validationLayersEnabled())
         extensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
 
       extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);

@@ -2,13 +2,22 @@
 #include "queue.hpp"
 
 namespace Core::Graphics {
-  class VulkanRenderWindow;
+  class VulkanWindow;
 
   class VulkanQueue;
 
   class VulkanDevice {
     public:
       VulkanDevice();
+
+      // Class cannot be copied, only moved (since it owns a Vulkan device handle)
+      VulkanDevice(const VulkanDevice &other) = delete;
+
+      VulkanDevice &operator=(const VulkanDevice &other) = delete;
+
+      VulkanDevice(VulkanDevice &&other) noexcept;
+
+      VulkanDevice &operator=(VulkanDevice &&other) noexcept;
 
       ~VulkanDevice();
 

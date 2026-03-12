@@ -23,8 +23,6 @@ namespace Core::Graphics {
         std::uint32_t queueIndex
       );
 
-      ~VulkanQueue() = default;
-
       void initialize(const VkDevice &device, VkQueue queue, std::uint32_t bufferedFrameCount);
 
       Type type;

@@ -1,13 +1,10 @@
+#include <cstdint>
 #include <glm/glm.hpp>
 #include <core/application/logger.hpp>
-#include <core/renderer/render_context.hpp>
-#include "window.hpp"
 #include "application.hpp"
 
 namespace Core {
   Application::Application(const char *name) {
-    graphicsBackend = Graphics::Backend::Vulkan;
-
     if (!SDL_Init(SDL_INIT_VIDEO)) {
       LOG_CORE_CRITICAL("Failed to initialize SDL Video: {}", SDL_GetError());
       return;
@@ -19,28 +16,18 @@ namespace Core {
     else
       LOG_CORE_WARNING("No displays found.");
 
-    const Graphics::Backend backend = Graphics::Backend::Vulkan;
-    switch (backend) {
-      case  Graphics::Backend::Vulkan:
-        break;
-
-      default:
-        LOG_CORE_CRITICAL("No suitable graphics backend found.");
-        break;
-    }
-    // renderContext = std::make_shared<Vu>("Vulkan test");
     currentDisplay = SDL_GetCurrentDisplayMode(displays[0]);
 
-    const WindowOptions options {
+    renderer = std::make_shared<Graphics::Renderer>(chooseGraphicsBackend(), name);
+    currentWindow = std::make_shared<Window>(WindowOptions{
       .mouseLocked = true,
       .fullScreen = true,
-      .vsync =  true,
+      .vsync = true,
       .width = static_cast<std::uint32_t>(currentDisplay->w),
-      .height = static_cast<std::uint32_t>(currentDisplay->h)
-    };
-    mainWindow = std::make_shared<Window>(options);
+      .height = static_cast<std::uint32_t>(currentDisplay->w),
+      .windowName = name
+    });
 
-    running = true;
     run();
   }
 
@@ -63,6 +50,12 @@ namespace Core {
     }
 
     quit();
+  }
+
+  Graphics::Backend Application::chooseGraphicsBackend() const {
+    // TODO: Implement graphics backend selection based on platform and availability
+    const Graphics::Backend backend = Graphics::Backend::Vulkan;
+    return backend;
   }
 
   void Application::pollInputs() const {
