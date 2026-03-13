@@ -5,10 +5,7 @@
 #include "device.hpp"
 
 namespace Core::Graphics {
-  class VulkanRenderContext;
-
-  VulkanDevice::VulkanDevice() {
-  }
+  VulkanDevice::VulkanDevice() = default;
 
   VulkanDevice::VulkanDevice(VulkanDevice &&other) noexcept:
   physicalDevice(other.physicalDevice),
@@ -50,9 +47,11 @@ namespace Core::Graphics {
   }
 
   VulkanDevice::~VulkanDevice() {
-    physicalDevice = nullptr;
-    if (logicalDevice)
+    physicalDevice = VK_NULL_HANDLE;
+    if (logicalDevice) {
       vkDestroyDevice(logicalDevice, nullptr);
+      logicalDevice = VK_NULL_HANDLE;
+    }
   }
 
   void VulkanDevice::createPhysicalDevice(VkPhysicalDevice physicalDevice) {
@@ -125,7 +124,7 @@ namespace Core::Graphics {
   }
 
   void VulkanDevice::initializeQueues() {
-    const std::uint32_t frameBufferCount = VulkanRenderContext::getFrameBufferCount();
+    const std::uint32_t frameBufferCount = 0;
     VkQueue graphicsQueue = VK_NULL_HANDLE;
     vkGetDeviceQueue(
       logicalDevice, this->graphicsQueue.familyIndex, this->graphicsQueue.queueIndex, &graphicsQueue
@@ -157,7 +156,7 @@ namespace Core::Graphics {
     vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
     for (size_t extensionIndex = 0; extensionIndex < extensionCount; extensionIndex++) {
       const std::string extensionName = availableExtensions[extensionIndex].extensionName;
-      LOG_CORE_TRACE("Found device extension \"{}\"", extensionName);
+      LOG_CORE_TRACE("Found device extension \"{}\".", extensionName);
 
       if (extensionName == VK_KHR_MAINTENANCE2_EXTENSION_NAME) {
         extensions.push_back(VK_KHR_MAINTENANCE2_EXTENSION_NAME);
@@ -219,10 +218,13 @@ namespace Core::Graphics {
     const size_t familyCount = queueFamilyProperties.size();
     std::vector<VulkanQueue> queues;
     for (size_t familyIndex = 0; familyIndex < familyCount; familyIndex++) {
-      if (queueFamilyProperties[familyIndex].queueFlags & VK_QUEUE_COMPUTE_BIT &&
-          usedQueuesCount[familyIndex] < queueFamilyProperties[familyIndex].queueCount) {
-        LOG_CORE_TRACE("Found compute queue in family {} with {} queues.", familyIndex,
-                       queueFamilyProperties[familyIndex].queueCount);
+      const bool isCompute = queueFamilyProperties[familyIndex].queueFlags & VK_QUEUE_COMPUTE_BIT;
+      if (isCompute && usedQueuesCount[familyIndex] < queueFamilyProperties[familyIndex].queueCount) {
+        LOG_CORE_TRACE(
+          "Found compute queue in family {} with {} queues.",
+          familyIndex,
+          queueFamilyProperties[familyIndex].queueCount
+        );
 
         usedQueuesCount[familyIndex]++;
         queues.emplace_back(
@@ -240,11 +242,14 @@ namespace Core::Graphics {
     const size_t familyCount = queueFamilyProperties.size();
     std::vector<VulkanQueue> queues;
     for (size_t familyIndex = 0; familyIndex < familyCount; familyIndex++) {
-      if (queueFamilyProperties[familyIndex].queueFlags & VK_QUEUE_TRANSFER_BIT &&
-          !(queueFamilyProperties[familyIndex].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)) &&
-          usedQueueCount[familyIndex] < queueFamilyProperties[familyIndex].queueCount) {
-        LOG_CORE_TRACE("Found transfer queue in family {} with {} queues.", familyIndex,
-                       queueFamilyProperties[familyIndex].queueCount);
+      const bool isTransfer = queueFamilyProperties[familyIndex].queueFlags & VK_QUEUE_TRANSFER_BIT;
+      const bool isGraphicsOrCompute = queueFamilyProperties[familyIndex].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
+      if (isTransfer && !isGraphicsOrCompute && usedQueueCount[familyIndex] < queueFamilyProperties[familyIndex].queueCount) {
+        LOG_CORE_TRACE(
+          "Found transfer queue in family {} with {} queues.",
+          familyIndex,
+          queueFamilyProperties[familyIndex].queueCount
+        );
 
         usedQueueCount[familyIndex]++;
         queues.emplace_back(

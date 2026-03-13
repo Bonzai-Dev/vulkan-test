@@ -1,7 +1,7 @@
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_mouse.h>
 #include "window.hpp"
-#include "application.hpp"
+#include "../application.hpp"
 
 namespace Core {
   Window::Window(const WindowOptions& options) {

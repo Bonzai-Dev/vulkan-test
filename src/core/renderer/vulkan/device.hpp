@@ -2,6 +2,8 @@
 #include "queue.hpp"
 
 namespace Core::Graphics {
+  class VulkanRenderContext;
+
   class VulkanWindow;
 
   class VulkanQueue;

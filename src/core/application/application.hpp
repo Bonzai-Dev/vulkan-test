@@ -6,9 +6,9 @@
 #include <glm/glm.hpp>
 #include <core/application/logger.hpp>
 #include <core/renderer/renderer.hpp>
-#include "render_layer.hpp"
-#include "inputs.hpp"
-#include "window.hpp"
+#include "window/render_layer.hpp"
+#include "window/inputs.hpp"
+#include "window/window.hpp"
 
 namespace Core {
   class Application {

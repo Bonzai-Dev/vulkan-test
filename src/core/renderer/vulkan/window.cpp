@@ -1,6 +1,6 @@
 #include <stdexcept>
 #include <SDL3/SDL_vulkan.h>
-#include <core/application/window.hpp>
+#include <../../application/window/window.hpp>
 #include <core/application/logger.hpp>
 #include "util.hpp"
 #include "render_context.hpp"
@@ -42,7 +42,7 @@ namespace Core::Graphics {
   }
 
   void VulkanWindow::createSwapChain() {
-    const VulkanDevice &vulkanDevice = vulkanContext->getCurrentDevice();
+    const VulkanDevice &vulkanDevice = *vulkanContext->getCurrentDevice();
     VkBool32 supportPresent = false;
     vkGetPhysicalDeviceSurfaceSupportKHR(
       vulkanDevice.getPhysicalDevice(),
@@ -110,7 +110,7 @@ namespace Core::Graphics {
   }
 
   VkSurfaceFormatKHR VulkanWindow::chooseSurfaceFormat() const {
-    const VulkanDevice &vulkanDevice = vulkanContext->getCurrentDevice();
+    const VulkanDevice &vulkanDevice = *vulkanContext->getCurrentDevice();
     std::uint32_t formatsCount = 0;
     VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(
       vulkanDevice.getPhysicalDevice(), surface, &formatsCount, nullptr
@@ -137,7 +137,7 @@ namespace Core::Graphics {
   }
 
   VkPresentModeKHR VulkanWindow::choosePresentMode() const {
-    const VulkanDevice &vulkanDevice = vulkanContext->getCurrentDevice();
+    const VulkanDevice &vulkanDevice = *vulkanContext->getCurrentDevice();
     std::uint32_t presentModesCount = 0;
     vkGetPhysicalDeviceSurfacePresentModesKHR(
       vulkanDevice.getPhysicalDevice(), surface, &presentModesCount, nullptr
@@ -150,7 +150,7 @@ namespace Core::Graphics {
 
     // FIFO is guaranteed to be present
     VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    if (!options.vsync && std::find(presentModes.begin(), presentModes.end(), VK_PRESENT_MODE_IMMEDIATE_KHR) != presentModes.end())
+    if (!options.vsync && std::ranges::find(presentModes, VK_PRESENT_MODE_IMMEDIATE_KHR) != presentModes.end())
       presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
 
     return presentMode;
@@ -164,7 +164,7 @@ namespace Core::Graphics {
     std::uint32_t layerCount,
     std::uint32_t mipLevels
   ) const {
-    const VulkanDevice &vulkanDevice = vulkanContext->getCurrentDevice();
+    const VulkanDevice &vulkanDevice = *vulkanContext->getCurrentDevice();
     VkImageViewCreateInfo createInfo{
       .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .image = image,
@@ -192,6 +192,7 @@ namespace Core::Graphics {
   }
 
   void VulkanWindow::destroyImageView(const VkImageView &imageView) const {
-    vkDestroyImageView(vulkanContext->getCurrentDevice().getDevice(), imageView, nullptr);
+    const VulkanDevice &vulkanDevice = *vulkanContext->getCurrentDevice();
+    vkDestroyImageView(vulkanDevice.getDevice(), imageView, nullptr);
   }
 }

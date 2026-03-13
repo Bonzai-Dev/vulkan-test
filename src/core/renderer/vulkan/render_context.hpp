@@ -6,7 +6,7 @@
 #include "volk.h"
 
 namespace Core::Graphics {
-  class VulkanRenderContext: public RenderContext {
+  class VulkanRenderContext : public RenderContext {
     public:
       explicit VulkanRenderContext(const char *appName);
 
@@ -20,17 +20,17 @@ namespace Core::Graphics {
 
       VulkanRenderContext &operator=(VulkanRenderContext &&other) noexcept = delete;
 
-      static std::uint32_t getFrameBufferCount() { return frameBufferCount; }
-
       static std::vector<const char*> getExtensions();
 
       static bool validationLayersEnabled() { return validationLayersSupported; }
 
       VkInstance getInstance() const { return instance; }
 
-      const VulkanDevice &getCurrentDevice() const { return currentDevice; }
+      const VulkanDevice *getCurrentDevice() const { return currentDevice; }
 
       std::vector<VulkanDevice> &getDevices() const;
+
+      std::vector<const char*> getInstanceLayers();
 
       int rateDevice(const VulkanDevice &device);
 
@@ -41,7 +41,7 @@ namespace Core::Graphics {
         const std::vector<const char*> &layers
       );
 
-      VulkanDevice &chooseDevice();
+      VulkanDevice *chooseDevice();
 
       static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -52,12 +52,9 @@ namespace Core::Graphics {
 
       static inline bool validationLayersSupported;
 
-      static inline std::uint32_t frameBufferCount;
-
-      std::vector<const char*> instanceLayers;
       VkInstance instance = VK_NULL_HANDLE;
       VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 
-      VulkanDevice currentDevice;
+      VulkanDevice *currentDevice = nullptr;
   };
 }

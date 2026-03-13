@@ -1,3 +1,4 @@
+#include <iostream>
 #include <map>
 #include <SDL3/SDL_vulkan.h>
 #include <core/application/application.hpp>
@@ -12,32 +13,17 @@ namespace Core::Graphics {
       return;
     }
 
-    // Adding vulkan layers
-    uint32_t instanceLayerPropertyCount;
-    vkEnumerateInstanceLayerProperties(&instanceLayerPropertyCount, nullptr);
-    std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerPropertyCount);
-    vkEnumerateInstanceLayerProperties(&instanceLayerPropertyCount, instanceLayerProperties.data());
-    for (size_t layerIndex = 0; layerIndex < instanceLayerPropertyCount; layerIndex++) {
-      const std::string layerName = instanceLayerProperties[layerIndex].layerName;
-      if (Application::debugEnabled && layerName == "VK_LAYER_KHRONOS_validation") {
-        validationLayersSupported = true;
-        instanceLayers.push_back("VK_LAYER_KHRONOS_validation");
-        LOG_CORE_INFO("Validation layers enabled.");
-      }
-      LOG_CORE_DEBUG("Found instance layer: \"{}\"", layerName);
-    }
+    createInstance(appName, getExtensions(), getInstanceLayers());
 
-    createInstance(appName, getExtensions(), instanceLayers);
+    currentDevice = chooseDevice();
+    currentDevice->createLogicalDevice();
 
-    currentDevice = std::move(chooseDevice());
-    currentDevice.createLogicalDevice();
+    LOG_CORE_INFO("Rendering using {}.", currentDevice->getName());
 
-    LOG_CORE_INFO("Rendering using {}.", currentDevice.getName());
-
-    const std::uint32_t version = currentDevice.getProperties().apiVersion;
+    const std::uint32_t version = currentDevice->getProperties().apiVersion;
     LOG_CORE_DEBUG(
       "{} supports Vulkan up to {}.{}.{}.",
-      currentDevice.getName(),
+      currentDevice->getName(),
       VK_VERSION_MAJOR(version), VK_VERSION_MINOR(version),
       VK_VERSION_PATCH(version)
     );
@@ -131,13 +117,17 @@ namespace Core::Graphics {
     return devices;
   }
 
-  VulkanDevice &VulkanRenderContext::chooseDevice() {
-    std::vector<VulkanDevice> &devices = getDevices();
-    std::map<int, VulkanDevice*> deviceRankings;
-    for (auto &device: devices)
+  VulkanDevice *VulkanRenderContext::chooseDevice() {
+    static bool deviceChosen = false;
+    static std::map<int, VulkanDevice*> deviceRankings;
+    if (deviceChosen)
+      return deviceRankings.rbegin()->second;
+
+    for (auto &device: getDevices())
       deviceRankings.insert({rateDevice(device), &device});
 
-    return *deviceRankings.rbegin()->second;
+    deviceChosen = true;
+    return deviceRankings.rbegin()->second;
   }
 
   VkBool32 VulkanRenderContext::debugCallback(
@@ -148,19 +138,19 @@ namespace Core::Graphics {
   ) {
     switch (messageSeverity) {
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-        LOG_CORE_TRACE("Vulkan diagnostic: {}", callbackData->pMessage);
+        LOG_CORE_TRACE("Vulkan {}.", callbackData->pMessage);
         break;
 
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-        LOG_CORE_INFO("Vulkan info: {}", callbackData->pMessage);
+        LOG_CORE_INFO("Vulkan {}.", callbackData->pMessage);
         break;
 
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-        LOG_CORE_WARNING("Vulkan warning: {}", callbackData->pMessage);
+        LOG_CORE_WARNING("Vulkan {}.", callbackData->pMessage);
         break;
 
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-        LOG_CORE_ERROR("Vulkan error: {}", callbackData->pMessage);
+        LOG_CORE_ERROR("Vulkan {}.", callbackData->pMessage);
         break;
 
       default:
@@ -168,6 +158,40 @@ namespace Core::Graphics {
     }
 
     return VK_FALSE;
+  }
+
+  std::vector<const char*> VulkanRenderContext::getInstanceLayers() {
+    static bool foundLayers = false;
+    static std::vector<const char*> instanceLayers;
+
+    if (foundLayers)
+      return instanceLayers;
+
+    const char *validationLayer = "VK_LAYER_KHRONOS_validation";
+    uint32_t instanceLayerPropertyCount;
+    vkEnumerateInstanceLayerProperties(&instanceLayerPropertyCount, nullptr);
+    std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerPropertyCount);
+    vkEnumerateInstanceLayerProperties(&instanceLayerPropertyCount, instanceLayerProperties.data());
+    for (size_t layerIndex = 0; layerIndex < instanceLayerPropertyCount; layerIndex++) {
+      const std::string layerName = instanceLayerProperties[layerIndex].layerName;
+      if (Application::debugEnabled && layerName == validationLayer) {
+        validationLayersSupported = true;
+        instanceLayers.push_back(validationLayer);
+      }
+      LOG_CORE_DEBUG("Found instance layer \"{}\".", layerName);
+    }
+
+    if constexpr (Application::debugEnabled) {
+      if (std::ranges::find(instanceLayers, validationLayer) != instanceLayers.end())
+        LOG_CORE_INFO("Validation layer \"{}\" has been found.", validationLayer);
+      else
+        LOG_CORE_WARNING(""
+          "Validation layers for Vulkan has been requested while in debug mode, but are not available.",
+          validationLayer
+        );
+    }
+
+    return instanceLayers;
   }
 
   std::vector<const char*> VulkanRenderContext::getExtensions() {
