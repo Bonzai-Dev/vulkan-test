@@ -1,5 +1,5 @@
 #pragma once
-#include <../core/application/window/render_layer.hpp>
+#include <core/application/window/render_layer.hpp>
 
 class AppLayer : public Core::RenderLayer {
   public:

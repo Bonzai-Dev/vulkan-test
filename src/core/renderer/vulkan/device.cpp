@@ -25,23 +25,24 @@ namespace Core::Graphics {
   }
 
   VulkanDevice &VulkanDevice::operator=(VulkanDevice &&other) noexcept {
-    if (this != &other) {
-      physicalDevice = other.physicalDevice;
-      logicalDevice = other.logicalDevice;
-      deviceProperties = std::move(other.deviceProperties);
-      deviceMemoryProperties = std::move(other.deviceMemoryProperties);
-      deviceFeatures = std::move(other.deviceFeatures);
-      supportedStages = other.supportedStages;
-      queueFamilyProperties = std::move(other.queueFamilyProperties);
-      graphicsQueue = std::move(other.graphicsQueue);
-      computeQueues = std::move(other.computeQueues);
-      transferQueues = std::move(other.transferQueues);
-      presentQueue = other.presentQueue;
+    if (this == &other)
+      return *this;
 
-      other.physicalDevice = VK_NULL_HANDLE;
-      other.logicalDevice = VK_NULL_HANDLE;
-      other.presentQueue = VK_NULL_HANDLE;
-    }
+    physicalDevice = other.physicalDevice;
+    logicalDevice = other.logicalDevice;
+    deviceProperties = std::move(other.deviceProperties);
+    deviceMemoryProperties = std::move(other.deviceMemoryProperties);
+    deviceFeatures = std::move(other.deviceFeatures);
+    supportedStages = other.supportedStages;
+    queueFamilyProperties = std::move(other.queueFamilyProperties);
+    graphicsQueue = std::move(other.graphicsQueue);
+    computeQueues = std::move(other.computeQueues);
+    transferQueues = std::move(other.transferQueues);
+    presentQueue = other.presentQueue;
+
+    other.physicalDevice = VK_NULL_HANDLE;
+    other.logicalDevice = VK_NULL_HANDLE;
+    other.presentQueue = VK_NULL_HANDLE;
 
     return *this;
   }

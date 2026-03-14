@@ -19,14 +19,6 @@ namespace Core {
     currentDisplay = SDL_GetCurrentDisplayMode(displays[0]);
 
     renderer = std::make_shared<Graphics::Renderer>(chooseGraphicsBackend(), name);
-    currentWindow = std::make_shared<Window>(WindowOptions{
-      .mouseLocked = true,
-      .fullScreen = true,
-      .vsync = true,
-      .width = static_cast<std::uint32_t>(currentDisplay->w),
-      .height = static_cast<std::uint32_t>(currentDisplay->w),
-      .windowName = name
-    });
 
     run();
   }
@@ -36,17 +28,26 @@ namespace Core {
   }
 
   void Application::run() const {
+    static std::uint64_t lastFrameTime = 0;
+    static std::uint64_t currentFrameTime = 0;
     while (running) {
-      pollInputs();
+      lastFrameTime = currentFrameTime;
+      currentFrameTime = SDL_GetPerformanceCounter();
+      deltaTime = static_cast<double>(currentFrameTime - lastFrameTime) * 1000 /
+        static_cast<double>(SDL_GetPerformanceFrequency());
 
-      for (const auto &layer: layers)
-        layer->render();
+      isMouseMoving = false;
 
-      // window->updateBuffer();
+      SDL_Event windowEvent;
+      while (SDL_PollEvent(&windowEvent)) {
+        switch (windowEvent.type) {
+          case SDL_EVENT_QUIT:
+            running = false;
+            break;
+        }
+      }
 
-      const double currentTime = static_cast<double>(SDL_GetTicks()) / 1000;
-      deltaTime = currentTime - lastFrameTime;
-      lastFrameTime = static_cast<double>(currentTime);
+      windowManager.update();
     }
 
     quit();
@@ -56,39 +57,6 @@ namespace Core {
     // TODO: Implement graphics backend selection based on platform and availability
     const Graphics::Backend backend = Graphics::Backend::Vulkan;
     return backend;
-  }
-
-  void Application::pollInputs() const {
-    SDL_Event windowEvent;
-    mouseDelta = glm::zero<glm::vec2>();
-    isMouseMoving = false;
-
-    while (SDL_PollEvent(&windowEvent)) {
-      const auto pressedKey = static_cast<Inputs::KeyboardKey>(windowEvent.key.scancode);
-      switch (windowEvent.type) {
-        case SDL_EVENT_QUIT:
-          running = false;
-          break;
-
-        case SDL_EVENT_KEY_DOWN:
-          if (!pressedKeys.contains(pressedKey))
-            pressedKeys[pressedKey] = windowEvent.key;
-          break;
-
-        case SDL_EVENT_KEY_UP:
-          if (pressedKeys.contains(pressedKey))
-            pressedKeys.erase(pressedKey);
-          break;
-
-        case SDL_EVENT_MOUSE_MOTION:
-          isMouseMoving = true;
-          mouseDelta = glm::vec2(windowEvent.motion.xrel, windowEvent.motion.yrel);
-          break;
-
-        default:
-          break;
-      }
-    }
   }
 
   bool Application::keyDown(Inputs::KeyboardKey key, Inputs::KeyDetectMode detectMode) const {
