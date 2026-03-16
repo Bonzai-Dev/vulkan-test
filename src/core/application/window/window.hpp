@@ -22,7 +22,11 @@ namespace Core {
 
   class Window {
     public:
-      explicit Window(const WindowOptions& options);
+      explicit Window(
+        const WindowOptions& windowOptions,
+        const Application &application,
+        const SDL_DisplayMode *currentDisplay
+      );
 
       Window(const Window &other) = delete;
 
@@ -34,12 +38,6 @@ namespace Core {
 
       ~Window();
 
-      template<typename LayerT>
-      requires(std::is_base_of_v<RenderLayer, LayerT>)
-      void addLayer() const {
-        layers.push_back(std::make_unique<LayerT>(*this));
-      }
-
       const SDL_Window &getWindow() const { return *window; }
 
       const glm::vec2 &getMouseDelta() const { return mouseDelta; }
@@ -49,12 +47,14 @@ namespace Core {
       void handleEvent(const SDL_Event &event) const;
 
     private:
-      int id = 0;
+      const Application &application;
+
+      WindowOptions options;
+
+      unsigned int id = 0;
 
       bool mouseFocused = false;
       bool keyboardFocused = false;
-
-      mutable std::vector<std::unique_ptr<RenderLayer>> layers;
 
       mutable glm::vec2 mouseDelta = glm::zero<glm::vec2>();
       mutable glm::vec2 mousePosition = glm::zero<glm::vec2>();

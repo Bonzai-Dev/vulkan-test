@@ -6,13 +6,28 @@
 namespace Core {
   class WindowManager {
     public:
-      WindowManager();
+      explicit WindowManager(const Application &application);
 
-      void addWindow(const WindowOptions& options);
+      ~WindowManager();
+
+      WindowManager(const WindowManager&) = delete;
+
+      WindowManager& operator=(const WindowManager&) = delete;
+
+      WindowManager(WindowManager&&) = delete;
+
+      WindowManager& operator=(WindowManager&&) = delete;
+
+      void createWindow(const WindowOptions& options);
 
       void update() const;
 
     private:
+      const Application &application;
       std::vector<Window> windows;
+
+      int displayCount = 0;
+      mutable SDL_DisplayID *displays;
+      const SDL_DisplayMode *currentDisplay;
   };
 }

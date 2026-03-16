@@ -1,24 +1,16 @@
 #include <cstdint>
-#include <glm/glm.hpp>
 #include <core/application/logger.hpp>
 #include "application.hpp"
 
 namespace Core {
-  Application::Application(const char *name) {
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-      LOG_CORE_CRITICAL("Failed to initialize SDL Video: {}", SDL_GetError());
-      return;
-    }
-
-    displays = SDL_GetDisplays(&displayCount);
-    if (displayCount > 0)
-      LOG_CORE_INFO("Found {} display(s).", displayCount);
-    else
-      LOG_CORE_WARNING("No displays found.");
-
-    currentDisplay = SDL_GetCurrentDisplayMode(displays[0]);
-
-    renderer = std::make_shared<Graphics::Renderer>(chooseGraphicsBackend(), name);
+  Application::Application(const char *name): name(name) {
+    createWindow({
+      .mouseLocked = false,
+      .fullScreen = true,
+      .vsync = true,
+      .minimized = true,
+      .windowName = "Game"
+    });
 
     run();
   }
@@ -43,6 +35,8 @@ namespace Core {
         switch (windowEvent.type) {
           case SDL_EVENT_QUIT:
             running = false;
+            break;
+          default:
             break;
         }
       }
@@ -79,7 +73,6 @@ namespace Core {
       return;
 
     running = false;
-    SDL_free(displays);
     SDL_Quit();
   }
 }

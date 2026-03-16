@@ -4,15 +4,21 @@
 #include "../application.hpp"
 
 namespace Core {
-  Window::Window(const WindowOptions &options) {
-    if (options.fullScreen)
+  Window::Window(
+    const WindowOptions &windowOptions,
+    const Application &application,
+    const SDL_DisplayMode *currentDisplay
+  ) : application(application), options(windowOptions) {
+    if (windowOptions.fullScreen) {
       windowFlags |= SDL_WINDOW_FULLSCREEN;
+      options.width = currentDisplay->w;
+      options.height = currentDisplay->h;
+    }
 
-    switch (Application::getGraphicsBackend()) {
+    switch (application.getGraphicsBackend()) {
       case Graphics::Backend::Vulkan:
         windowFlags |= SDL_WINDOW_VULKAN;
         break;
-
       default:
         break;
     }
@@ -41,7 +47,6 @@ namespace Core {
     id = other.id;
     mouseFocused = other.mouseFocused;
     keyboardFocused = other.keyboardFocused;
-    layers = std::move(other.layers);
     mouseDelta = other.mouseDelta;
     mousePosition = other.mousePosition;
     window = other.window;
@@ -52,15 +57,15 @@ namespace Core {
   }
 
   Window::Window(Window &&other) noexcept :
+  application(other.application),
   id(other.id),
   mouseFocused(other.mouseFocused),
   keyboardFocused(other.keyboardFocused),
-  layers(std::move(other.layers)),
   mouseDelta(other.mouseDelta),
   mousePosition(other.mousePosition),
   window(other.window),
   windowFlags(other.windowFlags) {
-    other.window = nullptr;
+  other.window = nullptr;
   }
 
   Window::~Window() {

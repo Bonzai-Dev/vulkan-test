@@ -4,6 +4,8 @@
 
 namespace Core::Graphics {
   Renderer::Renderer(Backend backend, const char *appName): backend(backend) {
+    LOG_CORE_CRITICAL(appName);
+
     switch (backend) {
       case Backend::Vulkan:
         renderContext = std::make_unique<VulkanRenderContext>(appName);

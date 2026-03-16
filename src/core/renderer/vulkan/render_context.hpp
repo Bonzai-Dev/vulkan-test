@@ -26,7 +26,7 @@ namespace Core::Graphics {
 
       VkInstance getInstance() const { return instance; }
 
-      const VulkanDevice *getCurrentDevice() const { return currentDevice.get(); }
+      const VulkanDevice *getCurrentDevice() const { return currentDevice; }
 
       std::vector<VulkanDevice> &getDevices() const;
 
@@ -55,6 +55,6 @@ namespace Core::Graphics {
       VkInstance instance = VK_NULL_HANDLE;
       VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 
-      std::unique_ptr<VulkanDevice> currentDevice = nullptr;
+      VulkanDevice *currentDevice = nullptr;
   };
 }

@@ -1,4 +1,11 @@
 #pragma once
+#include <core/application/events/event.hpp>
+
+// The application will have multiple render layers that can be rendered in a specific order.
+//
+// This allows better code organization and separation for each aspect of the game.
+// For example, one layer could be responsible for rendering the game world, while another layer could be
+// responsible for rendering the UI.
 
 namespace Core {
   class Application;
@@ -10,6 +17,8 @@ namespace Core {
       virtual ~RenderLayer() = default;
 
       virtual void render() {}
+
+      virtual void onEvent(const Event &event) {}
 
     protected:
       const Application &application;

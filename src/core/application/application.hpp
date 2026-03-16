@@ -27,13 +27,21 @@ namespace Core {
       static constexpr bool debugEnabled = true;
 #endif
 
+      template<typename LayerT>
+      requires(std::is_base_of_v<RenderLayer, LayerT>)
+      void addLayer() const {
+        layers.push_back(std::make_unique<LayerT>(*this));
+      }
+
       bool keyDown(Inputs::KeyboardKey key, Inputs::KeyDetectMode detectMode) const;
+
+      void createWindow(const WindowOptions &options) const { windowManager.createWindow(options); }
 
       const double &getDeltaTime() const { return deltaTime; }
 
       const bool &mouseMoving() const { return isMouseMoving; }
 
-      static const Graphics::Backend &getGraphicsBackend() { return renderer->backend; }
+      const Graphics::Backend &getGraphicsBackend() const { return renderer.backend; }
 
       void quit() const;
 
@@ -44,17 +52,14 @@ namespace Core {
 
       Logger logger;
 
-      static inline std::shared_ptr<Graphics::Renderer> renderer;
+      const char *name;
+      mutable WindowManager windowManager = WindowManager(*this);
+      Graphics::Renderer renderer = Graphics::Renderer(chooseGraphicsBackend(), name);
 
-      WindowManager windowManager;
-
-      mutable bool isMouseMoving = false;
-
-      int displayCount = 0;
-      mutable SDL_DisplayID *displays;
-      const SDL_DisplayMode *currentDisplay;
+      mutable std::vector<std::unique_ptr<RenderLayer>> layers;
 
       mutable std::unordered_map<Inputs::KeyboardKey, SDL_KeyboardEvent> pressedKeys;
+      mutable bool isMouseMoving = false;
 
       mutable double deltaTime = 0;
       mutable bool running = true;
