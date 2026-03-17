@@ -2,6 +2,8 @@
 #include <core/application/logger.hpp>
 #include "window_manager.hpp"
 
+#include "core/application/application.hpp"
+
 namespace Core {
   WindowManager::WindowManager(const Application &application): application(application) {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -30,6 +32,18 @@ namespace Core {
     for (const auto &window: windows) {
       // window.handleEvent(TODO);
       window.render();
+    }
+  }
+
+  void WindowManager::pollInputs() const {
+    SDL_Event sdlEvent;
+    while (SDL_PollEvent(&sdlEvent)) {
+      switch (sdlEvent.type) {
+        case SDL_EVENT_MOUSE_MOTION:
+          break;
+        default:
+          break;
+      }
     }
   }
 }

@@ -23,6 +23,8 @@ namespace Core {
       void update() const;
 
     private:
+      void pollInputs() const;
+
       const Application &application;
       std::vector<Window> windows;
 

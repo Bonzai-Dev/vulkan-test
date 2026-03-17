@@ -1,7 +1,7 @@
 #pragma once
-#include <core/application/window/render_layer.hpp>
+#include <core/application/window/layer.hpp>
 
-class AppLayer : public Core::RenderLayer {
+class AppLayer : public Core::Layer {
   public:
     explicit AppLayer(const Core::Application &application);
 

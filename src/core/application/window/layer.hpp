@@ -10,15 +10,15 @@
 namespace Core {
   class Application;
 
-  class RenderLayer {
+  class Layer {
     public:
-      explicit RenderLayer(const Application &application) : application(application) {}
+      explicit Layer(const Application &application) : application(application) {}
 
-      virtual ~RenderLayer() = default;
+      virtual ~Layer() = default;
 
-      virtual void render() {}
+      virtual void render();
 
-      virtual void onEvent(const Event &event) {}
+      virtual void onEvent(const Event &event);
 
     protected:
       const Application &application;

@@ -30,17 +30,6 @@ namespace Core {
 
       isMouseMoving = false;
 
-      SDL_Event windowEvent;
-      while (SDL_PollEvent(&windowEvent)) {
-        switch (windowEvent.type) {
-          case SDL_EVENT_QUIT:
-            running = false;
-            break;
-          default:
-            break;
-        }
-      }
-
       windowManager.update();
     }
 

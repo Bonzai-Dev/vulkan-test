@@ -4,7 +4,7 @@
 #include <SDL3/SDL_video.h>
 #include <glm/gtc/constants.hpp>
 #include <glm/glm.hpp>
-#include "render_layer.hpp"
+#include "layer.hpp"
 #include "SDL3/SDL_events.h"
 
 namespace Core {
@@ -43,8 +43,6 @@ namespace Core {
       const glm::vec2 &getMouseDelta() const { return mouseDelta; }
 
       void render() const;
-
-      void handleEvent(const SDL_Event &event) const;
 
     private:
       const Application &application;

@@ -28,7 +28,7 @@ namespace Core {
 #endif
 
       template<typename LayerT>
-      requires(std::is_base_of_v<RenderLayer, LayerT>)
+      requires(std::is_base_of_v<Layer, LayerT>)
       void addLayer() const {
         layers.push_back(std::make_unique<LayerT>(*this));
       }
@@ -38,8 +38,6 @@ namespace Core {
       void createWindow(const WindowOptions &options) const { windowManager.createWindow(options); }
 
       const double &getDeltaTime() const { return deltaTime; }
-
-      const bool &mouseMoving() const { return isMouseMoving; }
 
       const Graphics::Backend &getGraphicsBackend() const { return renderer.backend; }
 
@@ -56,10 +54,9 @@ namespace Core {
       mutable WindowManager windowManager = WindowManager(*this);
       Graphics::Renderer renderer = Graphics::Renderer(chooseGraphicsBackend(), name);
 
-      mutable std::vector<std::unique_ptr<RenderLayer>> layers;
+      mutable std::vector<std::unique_ptr<Layer>> layers;
 
       mutable std::unordered_map<Inputs::KeyboardKey, SDL_KeyboardEvent> pressedKeys;
-      mutable bool isMouseMoving = false;
 
       mutable double deltaTime = 0;
       mutable bool running = true;

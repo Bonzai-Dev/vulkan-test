@@ -72,9 +72,6 @@ namespace Core {
     SDL_DestroyWindow(window);
   }
 
-  void Window::handleEvent(const SDL_Event &event) const {
-  }
-
   void Window::render() const {
   }
 }

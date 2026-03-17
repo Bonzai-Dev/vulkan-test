@@ -1,6 +1,6 @@
 #pragma once
 #include <functional>
-#include <vector>
+#include <queue>
 
 namespace Core {
   enum class EventType {
@@ -23,16 +23,15 @@ namespace Core {
 
     protected:
       bool handled = false;
-
-    private:
-
   };
 
   class EventDispatcher {
     public:
-      EventDispatcher();
+      static void queueEvent();
+
+      
 
     private:
-      std::vector<Event> eventQueue;
+      static inline std::queue<Event> eventQueue;
   };
 }
