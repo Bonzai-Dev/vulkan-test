@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <core/application/logger.hpp>
+#include "events/application.hpp"
 #include "application.hpp"
 
 namespace Core {
@@ -28,7 +29,22 @@ namespace Core {
       deltaTime = static_cast<double>(currentFrameTime - lastFrameTime) * 1000 /
         static_cast<double>(SDL_GetPerformanceFrequency());
 
-      isMouseMoving = false;
+      eventDispatcher.processEvents();
+      SDL_Event windowEvent;
+      while (SDL_PollEvent(&windowEvent)) {
+        switch (windowEvent.type) {
+          case SDL_EVENT_QUIT: {
+            running = false;
+            Events::ApplicationQuit quitEvent;
+            eventDispatcher.post<Events::ApplicationQuit>(quitEvent);
+            break;
+          }
+          default:
+            break;
+        }
+      }
+
+      // isMouseMoving = false;
 
       windowManager.update();
     }
