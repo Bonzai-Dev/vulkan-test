@@ -16,9 +16,7 @@ namespace Core {
 
       virtual ~Layer() = default;
 
-      virtual void render();
-
-      virtual void onEvent(const Event &event);
+      // virtual void render();
 
     protected:
       const Application &application;

@@ -4,7 +4,7 @@
 #include "application.hpp"
 
 namespace Core {
-  Application::Application(const char *name): name(name) {
+  Application::Application(const char *name) : name(name) {
     createWindow({
       .mouseLocked = false,
       .fullScreen = true,
@@ -20,6 +20,11 @@ namespace Core {
     quit();
   }
 
+  bool onQuit(const Events::ApplicationQuit &event) {
+    LOG_CORE_CRITICAL("QUit");
+    return false;
+  }
+
   void Application::run() const {
     static std::uint64_t lastFrameTime = 0;
     static std::uint64_t currentFrameTime = 0;
@@ -27,16 +32,18 @@ namespace Core {
       lastFrameTime = currentFrameTime;
       currentFrameTime = SDL_GetPerformanceCounter();
       deltaTime = static_cast<double>(currentFrameTime - lastFrameTime) * 1000 /
-        static_cast<double>(SDL_GetPerformanceFrequency());
+                  static_cast<double>(SDL_GetPerformanceFrequency());
 
-      eventDispatcher.processEvents();
+      // eventDispatcher.processEvents();
       SDL_Event windowEvent;
       while (SDL_PollEvent(&windowEvent)) {
         switch (windowEvent.type) {
           case SDL_EVENT_QUIT: {
             running = false;
-            Events::ApplicationQuit quitEvent;
-            eventDispatcher.post<Events::ApplicationQuit>(quitEvent);
+            const Events::ApplicationQuit event;
+            Events::EventDispatcher<Events::ApplicationQuit>([&event]() {
+              return onQuit(event);
+            });
             break;
           }
           default:
