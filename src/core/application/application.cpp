@@ -54,10 +54,10 @@ namespace Core {
             break;
         }
       }
+            eventDispatcher.queue<Events::ApplicationQuit>(Events::ApplicationQuit());
 
-
-      const Events::ApplicationQuit event;
-      eventDispatcher.queue(event);
+      // const Events::ApplicationQuit event;
+      // eventDispatcher.queue<Events::ApplicationQuit>(Events::ApplicationQuit());
 
       // isMouseMoving = false;
 

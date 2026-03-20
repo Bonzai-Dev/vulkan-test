@@ -51,29 +51,29 @@ namespace Core::Events {
         });
       }
 
-      // template<typename T>
-        //  void queue(T&& msg) {
-        // queuedDispatches.push([m = std::forward<T>(msg)](Dispatcher& dispatcher) {
-        //     dispatcher.dispatch(m);
-        // });
-      // }
+      template<typename EventT>
+      void queue(const EventT &event) {
+        queuedDispatches.push([](Core::Events::EventDispatcher& dispatcher) {
+          LOG_CORE_INFO("process");
+         });
+      }
 
       void process() {
-        while (!eventsQueue.empty()) {
-          Event &event = eventsQueue.front();
-          const std::vector<EventListener<Event>> &eventListeners = listeners[typeid(event)];
-          for (const auto &eventListener : eventListeners) {
-            eventListener(event);
-            LOG_CORE_INFO("process");
-          }
-
-          event.handled = true;
-          eventsQueue.pop();
-        }
+        // while (!eventsQueue.empty()) {
+        //   Event &event = eventsQueue.front();
+        //   const std::vector<EventListener<Event>> &eventListeners = listeners[typeid(event)];
+        //   for (const auto &eventListener : eventListeners) {
+        //     eventListener(event);
+        //     LOG_CORE_INFO("process");
+        //   }
+        //
+        //   event.handled = true;
+        //   eventsQueue.pop();
+        // }
       }
 
     private:
-      static inline std::queue<Event> eventsQueue;
+      std::queue<std::function<void(EventDispatcher&)>> queuedDispatches;
       static inline std::unordered_map<std::type_index, std::vector<EventListener<Event>>> listeners;
   };
 }
