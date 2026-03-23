@@ -39,7 +39,7 @@ namespace Core {
       deltaTime = static_cast<double>(currentFrameTime - lastFrameTime) * 1000 /
                   static_cast<double>(SDL_GetPerformanceFrequency());
 
-      eventDispatcher.process();
+      // eventDispatcher.process();
       SDL_Event windowEvent;
       while (SDL_PollEvent(&windowEvent)) {
         switch (windowEvent.type) {
@@ -54,7 +54,8 @@ namespace Core {
             break;
         }
       }
-            eventDispatcher.queue<Events::ApplicationQuit>(Events::ApplicationQuit());
+
+      eventDispatcher.queue(Events::ApplicationQuit());
 
       // const Events::ApplicationQuit event;
       // eventDispatcher.queue<Events::ApplicationQuit>(Events::ApplicationQuit());
