@@ -5,7 +5,8 @@
 #include "core/application/application.hpp"
 
 namespace Core {
-  WindowManager::WindowManager(const Application &application): application(application) {
+  WindowManager::WindowManager(const Application &application, const Events::EventDispatcher &eventDispatcher):
+  application(application), eventDispatcher(eventDispatcher) {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
       LOG_CORE_CRITICAL("Failed to initialize SDL Video: {}", SDL_GetError());
       return;
@@ -29,21 +30,20 @@ namespace Core {
   }
 
   void WindowManager::update() const {
-    for (const auto &window: windows) {
-      // window.handleEvent(TODO);
-      window.render();
-    }
-  }
-
-  void WindowManager::pollInputs() const {
     SDL_Event sdlEvent;
     while (SDL_PollEvent(&sdlEvent)) {
       switch (sdlEvent.type) {
-        case SDL_EVENT_MOUSE_MOTION:
+        case SDL_EVENT_QUIT:
+          eventDispatcher.queue(Events::ApplicationQuit());
           break;
         default:
           break;
       }
+    }
+
+    for (const Window &window: windows) {
+      window.handleWindowEvent(sdlEvent);
+      window.update(sdlEvent);
     }
   }
 }

@@ -6,7 +6,7 @@
 namespace Core {
   class WindowManager {
     public:
-      explicit WindowManager(const Application &application);
+      explicit WindowManager(const Application &application, const Events::EventDispatcher &eventDispatcher);
 
       ~WindowManager();
 
@@ -23,7 +23,7 @@ namespace Core {
       void update() const;
 
     private:
-      void pollInputs() const;
+      const Events::EventDispatcher &eventDispatcher;
 
       const Application &application;
       std::vector<Window> windows;

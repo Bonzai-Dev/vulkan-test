@@ -4,21 +4,24 @@
 #include "application.hpp"
 
 namespace Core {
-  bool onQuit(const Events::ApplicationQuit &event) {
-    LOG_CORE_CRITICAL("QUit");
-    return false;
-  }
-
   Application::Application(const char *name) : name(name) {
     createWindow({
       .mouseLocked = false,
-      .fullScreen = true,
+      // .fullScreen = true,
       .vsync = true,
       .minimized = true,
       .windowName = "Game"
     });
 
-    eventDispatcher.listen<Events::ApplicationQuit>([](const Events::ApplicationQuit &event) {
+    // createWindow({
+    //   .mouseLocked = false,
+    //   .fullScreen = true,
+    //   .vsync = true,
+    //   .minimized = true,
+    //   .windowName = "Game"
+    // });
+
+    eventDispatcher.listen<Events::ApplicationQuit>([&](const Events::ApplicationQuit &event) {
       return onQuit(event);
     });
 
@@ -29,6 +32,11 @@ namespace Core {
     quit();
   }
 
+  bool Application::onQuit(const Events::ApplicationQuit &event) const {
+    running = false;
+    LOG_CORE_CRITICAL("Program quit");
+    return false;
+  }
 
   void Application::run() const {
     static std::uint64_t lastFrameTime = 0;
@@ -39,29 +47,7 @@ namespace Core {
       deltaTime = static_cast<double>(currentFrameTime - lastFrameTime) * 1000 /
                   static_cast<double>(SDL_GetPerformanceFrequency());
 
-      // eventDispatcher.process();
-      SDL_Event windowEvent;
-      while (SDL_PollEvent(&windowEvent)) {
-        switch (windowEvent.type) {
-          case SDL_EVENT_QUIT: {
-            running = false;
-            // Events::EventDispatcher<Events::ApplicationQuit>([&event]() {
-            //   return onQuit(event);
-            // });
-            break;
-          }
-          default:
-            break;
-        }
-      }
-
-      eventDispatcher.queue(Events::ApplicationQuit());
-
-      // const Events::ApplicationQuit event;
-      // eventDispatcher.queue<Events::ApplicationQuit>(Events::ApplicationQuit());
-
-      // isMouseMoving = false;
-
+      eventDispatcher.process();
       windowManager.update();
     }
 

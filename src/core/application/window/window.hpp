@@ -25,7 +25,8 @@ namespace Core {
       explicit Window(
         const WindowOptions& windowOptions,
         const Application &application,
-        const SDL_DisplayMode *currentDisplay
+        const SDL_DisplayMode *currentDisplay,
+        const Events::EventDispatcher &eventDispatcher
       );
 
       Window(const Window &other) = delete;
@@ -42,10 +43,15 @@ namespace Core {
 
       const glm::vec2 &getMouseDelta() const { return mouseDelta; }
 
-      void render() const;
+      void handleWindowEvent(const SDL_Event &event) const;
+
+      void update(const SDL_Event &event) const;
 
     private:
+      void render() const;
+
       const Application &application;
+      const Events::EventDispatcher &eventDispatcher;
 
       WindowOptions options;
 

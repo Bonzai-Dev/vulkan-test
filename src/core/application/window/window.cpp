@@ -7,8 +7,9 @@ namespace Core {
   Window::Window(
     const WindowOptions &windowOptions,
     const Application &application,
-    const SDL_DisplayMode *currentDisplay
-  ) : application(application), options(windowOptions) {
+    const SDL_DisplayMode *currentDisplay,
+    const Events::EventDispatcher &eventDispatcher
+  ) : application(application), options(windowOptions), eventDispatcher(eventDispatcher) {
     if (windowOptions.fullScreen) {
       windowFlags |= SDL_WINDOW_FULLSCREEN;
       options.width = currentDisplay->w;
@@ -73,5 +74,20 @@ namespace Core {
   }
 
   void Window::render() const {
+  }
+
+  void Window::handleWindowEvent(const SDL_Event &event) const {
+    const bool isWindowEvent = event.type >= SDL_EVENT_WINDOW_FIRST && event.type <= SDL_EVENT_WINDOW_LAST;
+    if (!isWindowEvent && event.window.windowID != id)
+      return;
+
+    switch (event.type) {
+      case SDL_EVENT_MOUSE_MOTION:
+        // mouseDelta = glm::vec2(event.motion.xrel, event.motion.yrel);
+        // eventDispatcher.queue(Events::);
+        break;
+      default:
+        break;
+    }
   }
 }

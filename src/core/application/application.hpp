@@ -2,6 +2,7 @@
 #include <memory>
 #include <core/application/logger.hpp>
 #include <core/renderer/renderer.hpp>
+#include <core/application/events/application.hpp>
 #include "window/inputs.hpp"
 #include "window/window.hpp"
 #include "window/window_manager.hpp"
@@ -44,6 +45,8 @@ namespace Core {
       void quit() const;
 
     private:
+      bool onQuit(const Events::ApplicationQuit &event) const;
+
       Graphics::Backend chooseGraphicsBackend() const;
 
       void run() const;
@@ -52,7 +55,7 @@ namespace Core {
 
       const char *name;
       mutable Events::EventDispatcher eventDispatcher;
-      mutable WindowManager windowManager = WindowManager(*this);
+      mutable WindowManager windowManager = WindowManager(*this, eventDispatcher);
       Graphics::Renderer renderer = Graphics::Renderer(chooseGraphicsBackend(), name);
 
       mutable std::vector<std::unique_ptr<Layer>> layers;
