@@ -1,4 +1,4 @@
-#include <core/application/logger.hpp>
+#include <core/logger.hpp>
 #include "util.hpp"
 #include "queue.hpp"
 #include "render_context.hpp"

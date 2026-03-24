@@ -1,5 +1,6 @@
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_mouse.h>
+#include <core/events/window.hpp>
 #include "window.hpp"
 #include "../application.hpp"
 
@@ -9,7 +10,7 @@ namespace Core {
     const Application &application,
     const SDL_DisplayMode *currentDisplay,
     const Events::EventDispatcher &eventDispatcher
-  ) : application(application), options(windowOptions), eventDispatcher(eventDispatcher) {
+  ) : application(application), eventDispatcher(eventDispatcher), options(windowOptions) {
     if (windowOptions.fullScreen) {
       windowFlags |= SDL_WINDOW_FULLSCREEN;
       options.width = currentDisplay->w;
@@ -48,8 +49,6 @@ namespace Core {
     id = other.id;
     mouseFocused = other.mouseFocused;
     keyboardFocused = other.keyboardFocused;
-    mouseDelta = other.mouseDelta;
-    mousePosition = other.mousePosition;
     window = other.window;
     windowFlags = other.windowFlags;
 
@@ -62,10 +61,9 @@ namespace Core {
   id(other.id),
   mouseFocused(other.mouseFocused),
   keyboardFocused(other.keyboardFocused),
-  mouseDelta(other.mouseDelta),
-  mousePosition(other.mousePosition),
   window(other.window),
-  windowFlags(other.windowFlags) {
+  windowFlags(other.windowFlags),
+  eventDispatcher(other.eventDispatcher) {
   other.window = nullptr;
   }
 
@@ -74,20 +72,55 @@ namespace Core {
   }
 
   void Window::render() const {
+    // TODO: rendering logic here
   }
 
-  void Window::handleWindowEvent(const SDL_Event &event) const {
-    const bool isWindowEvent = event.type >= SDL_EVENT_WINDOW_FIRST && event.type <= SDL_EVENT_WINDOW_LAST;
-    if (!isWindowEvent && event.window.windowID != id)
-      return;
+  void Window::onClose(const Events::WindowClosed &event) {
+    if (event.windowId == id)
+      SDL_HideWindow(window);
+  }
 
-    switch (event.type) {
-      case SDL_EVENT_MOUSE_MOTION:
-        // mouseDelta = glm::vec2(event.motion.xrel, event.motion.yrel);
-        // eventDispatcher.queue(Events::);
-        break;
-      default:
-        break;
-    }
+  void Window::onExposed(const Events::WindowExposed &event) {
+
+  }
+
+  void Window::onShow(const Events::WindowShown &event) {
+
+  }
+
+  void Window::onHide(const Events::WindowHidden &event) {
+
+  }
+
+  void Window::onResize(const Events::WindowResized &event) {
+
+  }
+
+  void Window::onMouseEnter(const Events::WindowMouseEnter &event) {
+
+  }
+
+  void Window::onMouseLeave(const Events::WindowMouseLeave &event) {
+
+  }
+
+  void Window::onFocusGained(const Events::WindowFocusGained &event) {
+
+  }
+
+  void Window::onFocusLost(const Events::WindowFocusLost &event) {
+
+  }
+
+  void Window::onMinimized(const Events::WindowMinimized &event) {
+
+  }
+
+  void Window::onMaximized(const Events::WindowMaximized &event) {
+
+  }
+
+  void Window::onRestored(const Events::WindowRestored &event) {
+
   }
 }

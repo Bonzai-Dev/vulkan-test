@@ -1,8 +1,8 @@
 #include <iostream>
 #include <map>
 #include <SDL3/SDL_vulkan.h>
-#include <core/application/application.hpp>
-#include <core/application/logger.hpp>
+#include <core/application.hpp>
+#include <core/logger.hpp>
 #include "util.hpp"
 #include "render_context.hpp"
 

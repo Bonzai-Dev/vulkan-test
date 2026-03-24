@@ -3,29 +3,31 @@
 #include <functional>
 #include <map>
 #include <queue>
-#include <core/application/logger.hpp>
+#include <core/logger.hpp>
 
 namespace Core::Events {
   enum class EventType {
     None = 0,
     QuitApplication,
-    KeyPressed, KeyReleased,
-    MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled
+    MouseMotion,
+    WindowResized, WindowShown, WindowHidden, WindowMouseEnter, WindowMouseLeave, WindowFocusGained, WindowFocusLost,
+    WindowMinimized, WindowMaximized, WindowRestored, WindowClosed, WindowExposed
   };
 
   class Event {
     public:
-      explicit Event(EventType type) : type(type) {
+      explicit Event(EventType type, const char *name) : type(type), name(name) {
       }
 
       const EventType type = EventType::None;
       bool handled = false;
       std::uint64_t time = 0;
+      const char *name = "Event";
   };
 
   template<typename EventT>
   requires(std::is_base_of_v<Event, EventT>)
-  using EventListener = std::function<bool(EventT &)>;
+  using EventListener = std::function<void(EventT &)>;
 
   class EventDispatcher {
     public:

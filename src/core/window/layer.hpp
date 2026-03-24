@@ -1,5 +1,5 @@
 #pragma once
-#include <core/application/events/event.hpp>
+#include <core/events/event.hpp>
 
 // The application will have multiple render layers that can be rendered in a specific order.
 //

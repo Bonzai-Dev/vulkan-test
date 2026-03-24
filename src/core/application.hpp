@@ -1,9 +1,8 @@
 #pragma once
 #include <memory>
-#include <core/application/logger.hpp>
+#include <core/logger.hpp>
 #include <core/renderer/renderer.hpp>
-#include <core/application/events/application.hpp>
-#include "window/inputs.hpp"
+#include <core/events/application.hpp>
 #include "window/window.hpp"
 #include "window/window_manager.hpp"
 
@@ -34,8 +33,6 @@ namespace Core {
         layers.push_back(std::make_unique<LayerT>(*this));
       }
 
-      bool keyDown(Inputs::KeyboardKey key, Inputs::KeyDetectMode detectMode) const;
-
       void createWindow(const WindowOptions &options) const { windowManager.createWindow(options); }
 
       const double &getDeltaTime() const { return deltaTime; }
@@ -44,23 +41,19 @@ namespace Core {
 
       void quit() const;
 
-    private:
-      bool onQuit(const Events::ApplicationQuit &event) const;
-
-      Graphics::Backend chooseGraphicsBackend() const;
-
       void run() const;
+
+    private:
+      Graphics::Backend selectGraphicsBackend() const;
 
       Logger logger;
 
       const char *name;
       mutable Events::EventDispatcher eventDispatcher;
       mutable WindowManager windowManager = WindowManager(*this, eventDispatcher);
-      Graphics::Renderer renderer = Graphics::Renderer(chooseGraphicsBackend(), name);
+      Graphics::Renderer renderer = Graphics::Renderer(selectGraphicsBackend(), name);
 
       mutable std::vector<std::unique_ptr<Layer>> layers;
-
-      mutable std::unordered_map<Inputs::KeyboardKey, SDL_KeyboardEvent> pressedKeys;
 
       mutable double deltaTime = 0;
       mutable bool running = true;

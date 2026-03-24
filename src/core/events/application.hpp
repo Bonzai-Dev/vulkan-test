@@ -4,6 +4,8 @@
 namespace Core::Events {
   class ApplicationQuit: public Event {
     public:
-      ApplicationQuit(): Event(EventType::QuitApplication) {}
+      ApplicationQuit():
+      Event(EventType::QuitApplication, "ApplicationQuit") {
+      }
   };
 }

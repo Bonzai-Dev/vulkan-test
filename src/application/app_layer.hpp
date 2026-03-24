@@ -1,5 +1,5 @@
 #pragma once
-#include <core/application/window/layer.hpp>
+#include <core/window/layer.hpp>
 
 class AppLayer : public Core::Layer {
   public:

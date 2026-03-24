@@ -1,11 +1,8 @@
 #pragma once
 #include <cstdint>
-#include <memory>
 #include <SDL3/SDL_video.h>
-#include <glm/gtc/constants.hpp>
-#include <glm/glm.hpp>
+#include <core/events/window.hpp>
 #include "layer.hpp"
-#include "SDL3/SDL_events.h"
 
 namespace Core {
   struct WindowOptions {
@@ -41,14 +38,32 @@ namespace Core {
 
       const SDL_Window &getWindow() const { return *window; }
 
-      const glm::vec2 &getMouseDelta() const { return mouseDelta; }
-
-      void handleWindowEvent(const SDL_Event &event) const;
-
-      void update(const SDL_Event &event) const;
+      void render() const;
 
     private:
-      void render() const;
+     void onShow(const Events::WindowShown &event);
+
+     void onHide(const Events::WindowHidden &event);
+
+     void onResize(const Events::WindowResized &event);
+
+     void onMouseEnter(const Events::WindowMouseEnter &event);
+
+     void onMouseLeave(const Events::WindowMouseLeave &event);
+
+     void onFocusGained(const Events::WindowFocusGained &event);
+
+     void onFocusLost(const Events::WindowFocusLost &event);
+
+     void onMinimized(const Events::WindowMinimized &event);
+
+     void onMaximized(const Events::WindowMaximized &event);
+
+     void onRestored(const Events::WindowRestored &event);
+
+     void onClose(const Events::WindowClosed &event);
+
+      void onExposed(const Events::WindowExposed &event);
 
       const Application &application;
       const Events::EventDispatcher &eventDispatcher;
@@ -59,9 +74,6 @@ namespace Core {
 
       bool mouseFocused = false;
       bool keyboardFocused = false;
-
-      mutable glm::vec2 mouseDelta = glm::zero<glm::vec2>();
-      mutable glm::vec2 mousePosition = glm::zero<glm::vec2>();
 
       SDL_Window *window = nullptr;
       SDL_WindowFlags windowFlags = 0;

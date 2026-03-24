@@ -1,7 +1,7 @@
 #include <stdexcept>
 #include <SDL3/SDL_vulkan.h>
-#include <core/application/window/window.hpp>
-#include <core/application/logger.hpp>
+#include <core/window/window.hpp>
+#include <core/logger.hpp>
 #include "util.hpp"
 #include "render_context.hpp"
 #include "window.hpp"
