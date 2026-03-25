@@ -37,11 +37,21 @@ namespace Core {
 
       void render() const;
 
+      void show() { shown = true; }
+
+      void hide() { shown = false; }
+
+      void resize(std::uint32_t width, std::uint32_t height) {
+        options.width = width;
+        options.height = height;
+      }
+
     private:
       WindowOptions options;
 
       std::uint32_t id = 0;
 
+      bool shown = false;
       bool mouseFocused = false;
       bool keyboardFocused = false;
 

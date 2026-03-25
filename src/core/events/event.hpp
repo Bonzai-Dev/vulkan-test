@@ -29,11 +29,12 @@ namespace Core::Events {
 
   class Event {
     public:
-      explicit Event(const char *name): name(name) {
+      explicit Event(EventType type, const char *name): name(name), type(type) {
       }
 
       virtual ~Event() = default;
 
+      const EventType type;
       bool handled = false;
       std::uint64_t time = 0;
       const char *name = "Event";
@@ -48,7 +49,7 @@ namespace Core::Events {
       template<typename EventT>
       requires(std::is_base_of_v<Event, EventT>)
       void listen(const EventListener<EventT> &listener) const {
-        listeners[EventT::getType()].push([listener](Event &event) {
+        listeners[typeid(EventT)].push([listener](Event &event) {
           return listener(static_cast<EventT&>(event));
         });
       }
@@ -56,27 +57,28 @@ namespace Core::Events {
       template<typename EventT>
       requires(std::is_base_of_v<Event, EventT>)
       void queue(const EventT &event) const {
-        eventQueue.push(&event);
-
+        eventTypeQueue.emplace(typeid(EventT));
+        eventQueue.push(event);
       }
 
       void process() {
-        while (!eventQueue.empty()) {
+        while (!eventTypeQueue.empty()) {
           Event &event = eventQueue.front();
-          std::queue<EventListener<Event>> &eventListeners = listeners[event.getType()];
+          std::queue<EventListener<Event>> &eventListeners = listeners[eventTypeQueue.front()];
           while (!eventListeners.empty()) {
             const EventListener<Event> &eventListener = eventListeners.front();
             eventListener(event);
-            eventListeners.pop();
           }
 
           event.handled = true;
+          eventTypeQueue.pop();
           eventQueue.pop();
         }
       }
 
     private:
       static inline std::queue<Event> eventQueue;
-      static inline std::unordered_map<EventType, std::queue<EventListener<Event>>> listeners;
+      static inline std::queue<std::type_index> eventTypeQueue;
+      static inline std::unordered_map<std::type_index, std::queue<EventListener<Event>>> listeners;
   };
 }
