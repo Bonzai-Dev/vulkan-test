@@ -1,25 +1,39 @@
 #pragma once
 #include <cstdint>
 #include <functional>
-#include <map>
 #include <queue>
+#include <typeindex>
+#include <unordered_map>
 #include <core/logger.hpp>
 
 namespace Core::Events {
   enum class EventType {
     None = 0,
     QuitApplication,
+
     MouseMotion,
-    WindowResized, WindowShown, WindowHidden, WindowMouseEnter, WindowMouseLeave, WindowFocusGained, WindowFocusLost,
-    WindowMinimized, WindowMaximized, WindowRestored, WindowClosed, WindowExposed
+
+    WindowResized,
+    WindowShown,
+    WindowHidden,
+    WindowMouseEnter,
+    WindowMouseLeave,
+    WindowFocusGained,
+    WindowFocusLost,
+    WindowMinimized,
+    WindowMaximized,
+    WindowRestored,
+    WindowClosed,
+    WindowExposed,
   };
 
   class Event {
     public:
-      explicit Event(EventType type, const char *name) : type(type), name(name) {
+      explicit Event(const char *name): name(name) {
       }
 
-      const EventType type = EventType::None;
+      virtual ~Event() = default;
+
       bool handled = false;
       std::uint64_t time = 0;
       const char *name = "Event";
@@ -34,22 +48,26 @@ namespace Core::Events {
       template<typename EventT>
       requires(std::is_base_of_v<Event, EventT>)
       void listen(const EventListener<EventT> &listener) const {
-        listeners[EventT().type].push([listener](Event &event) {
-          return listener(static_cast<EventT &>(event));
+        listeners[EventT::getType()].push([listener](Event &event) {
+          return listener(static_cast<EventT&>(event));
         });
       }
 
-      void queue(const Event &event) const {
-        eventQueue.push(event);
+      template<typename EventT>
+      requires(std::is_base_of_v<Event, EventT>)
+      void queue(const EventT &event) const {
+        eventQueue.push(&event);
+
       }
 
       void process() {
         while (!eventQueue.empty()) {
           Event &event = eventQueue.front();
-          while (!listeners[event.type].empty()) {
-            const EventListener<Event> &eventListener = listeners[event.type].front();
+          std::queue<EventListener<Event>> &eventListeners = listeners[event.getType()];
+          while (!eventListeners.empty()) {
+            const EventListener<Event> &eventListener = eventListeners.front();
             eventListener(event);
-            listeners[event.type].pop();
+            eventListeners.pop();
           }
 
           event.handled = true;

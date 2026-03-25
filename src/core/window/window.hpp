@@ -20,10 +20,9 @@ namespace Core {
   class Window {
     public:
       explicit Window(
-        const WindowOptions& windowOptions,
-        const Application &application,
+        const WindowOptions &windowOptions,
         const SDL_DisplayMode *currentDisplay,
-        const Events::EventDispatcher &eventDispatcher
+        std::uint64_t windowFlags
       );
 
       Window(const Window &other) = delete;
@@ -36,46 +35,17 @@ namespace Core {
 
       ~Window();
 
-      const SDL_Window &getWindow() const { return *window; }
-
       void render() const;
 
     private:
-     void onShow(const Events::WindowShown &event);
-
-     void onHide(const Events::WindowHidden &event);
-
-     void onResize(const Events::WindowResized &event);
-
-     void onMouseEnter(const Events::WindowMouseEnter &event);
-
-     void onMouseLeave(const Events::WindowMouseLeave &event);
-
-     void onFocusGained(const Events::WindowFocusGained &event);
-
-     void onFocusLost(const Events::WindowFocusLost &event);
-
-     void onMinimized(const Events::WindowMinimized &event);
-
-     void onMaximized(const Events::WindowMaximized &event);
-
-     void onRestored(const Events::WindowRestored &event);
-
-     void onClose(const Events::WindowClosed &event);
-
-      void onExposed(const Events::WindowExposed &event);
-
-      const Application &application;
-      const Events::EventDispatcher &eventDispatcher;
-
       WindowOptions options;
 
-      unsigned int id = 0;
+      std::uint32_t id = 0;
 
       bool mouseFocused = false;
       bool keyboardFocused = false;
 
       SDL_Window *window = nullptr;
-      SDL_WindowFlags windowFlags = 0;
+      std::uint64_t windowFlags = 0;
   };
 }

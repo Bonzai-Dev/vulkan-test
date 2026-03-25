@@ -5,7 +5,10 @@
 
 namespace Core {
   Application::Application(const char *name) : name(name) {
-    eventDispatcher.listen<Events::ApplicationQuit>([&](const Events::ApplicationQuit &event) { quit(); });
+    eventDispatcher.listen<Events::ApplicationQuit>([&](const Events::ApplicationQuit &event) {
+      quit();
+      LOG_CORE_CRITICAL("QUIT");
+    });
   }
 
   Application::~Application() {
@@ -19,7 +22,7 @@ namespace Core {
       lastFrameTime = currentFrameTime;
       currentFrameTime = SDL_GetPerformanceCounter();
       deltaTime = static_cast<double>(currentFrameTime - lastFrameTime) * 1000 /
-                  static_cast<double>(SDL_GetPerformanceFrequency());
+        static_cast<double>(SDL_GetPerformanceFrequency());
 
       eventDispatcher.process();
       windowManager.update();
