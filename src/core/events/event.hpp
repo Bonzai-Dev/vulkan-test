@@ -44,41 +44,37 @@ namespace Core::Events {
   requires(std::is_base_of_v<Event, EventT>)
   using EventListener = std::function<void(EventT &)>;
 
+  // TODO: Template class
   class EventDispatcher {
     public:
       template<typename EventT>
       requires(std::is_base_of_v<Event, EventT>)
       void listen(const EventListener<EventT> &listener) const {
-        listeners[typeid(EventT)].push([listener](Event &event) {
-          return listener(static_cast<EventT&>(event));
+        listeners[EventT().type].push([listener](Event &event) {
+          return listener(static_cast<EventT &>(event));
         });
       }
 
-      template<typename EventT>
-      requires(std::is_base_of_v<Event, EventT>)
-      void queue(const EventT &event) const {
-        eventTypeQueue.emplace(typeid(EventT));
+      void queue(const Event &event) const {
         eventQueue.push(event);
       }
 
       void process() {
-        while (!eventTypeQueue.empty()) {
+        while (!eventQueue.empty()) {
           Event &event = eventQueue.front();
-          std::queue<EventListener<Event>> &eventListeners = listeners[eventTypeQueue.front()];
+          std::queue<EventListener<Event>> &eventListeners = listeners[eventQueue.front().type];
           while (!eventListeners.empty()) {
             const EventListener<Event> &eventListener = eventListeners.front();
             eventListener(event);
           }
 
           event.handled = true;
-          eventTypeQueue.pop();
           eventQueue.pop();
         }
       }
 
     private:
       static inline std::queue<Event> eventQueue;
-      static inline std::queue<std::type_index> eventTypeQueue;
-      static inline std::unordered_map<std::type_index, std::queue<EventListener<Event>>> listeners;
+      static inline std::unordered_map<EventType, std::queue<EventListener<Event>>> listeners;
   };
 }

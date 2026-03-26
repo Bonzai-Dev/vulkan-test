@@ -22,6 +22,7 @@ namespace Core {
 
     currentDisplay = SDL_GetCurrentDisplayMode(displays[0]);
 
+
     eventDispatcher.listen<Events::WindowShown>([&](const Events::WindowShown &event) { onWindowShow(event); });
     eventDispatcher.listen<Events::WindowHidden>([&](const Events::WindowHidden &event) { onWindowHide(event); });
     eventDispatcher.listen<Events::WindowResized>([&](const Events::WindowResized &event) { onWindowResize(event); });
@@ -34,10 +35,6 @@ namespace Core {
     eventDispatcher.listen<Events::WindowRestored>([&](const Events::WindowRestored &event) { onWindowRestored(event); });
     eventDispatcher.listen<Events::WindowClosed>([&](const Events::WindowClosed &event) { onWindowClose(event); });
     eventDispatcher.listen<Events::WindowExposed>([&](const Events::WindowExposed &event) { onWindowExposed(event); });
-  }
-
-  WindowManager::~WindowManager() {
-    SDL_free(displays);
   }
 
   void WindowManager::createWindow(const WindowOptions& options) {
@@ -71,49 +68,49 @@ namespace Core {
     while (SDL_PollEvent(&event)) {
       switch (event.type) {
         case SDL_EVENT_QUIT:
-          eventDispatcher.queue<Events::ApplicationQuit>(Events::ApplicationQuit());
+          eventDispatcher.queue(Events::ApplicationQuit());
           break;
         case SDL_EVENT_WINDOW_SHOWN:
-          eventDispatcher.queue<Events::WindowShown>(Events::WindowShown(event.window.windowID));
+          eventDispatcher.queue(Events::WindowShown(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_HIDDEN:
-          eventDispatcher.queue<Events::WindowHidden>(Events::WindowHidden(event.window.windowID));
+          eventDispatcher.queue(Events::WindowHidden(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_RESIZED:
-          eventDispatcher.queue<Events::WindowResized>(Events::WindowResized(
+          eventDispatcher.queue(Events::WindowResized(
             event.window.data1, event.window.data2,
             event.window.windowID
           ));
           break;
         case SDL_EVENT_WINDOW_EXPOSED:
-          eventDispatcher.queue<Events::WindowExposed>(Events::WindowExposed(event.window.windowID));
+          eventDispatcher.queue(Events::WindowExposed(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_MOUSE_ENTER:
-          eventDispatcher.queue<Events::WindowMouseEnter>(Events::WindowMouseEnter(event.window.windowID));
+          eventDispatcher.queue(Events::WindowMouseEnter(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_MOUSE_LEAVE:
-          eventDispatcher.queue<Events::WindowMouseLeave>(Events::WindowMouseLeave(event.window.windowID));
+          eventDispatcher.queue(Events::WindowMouseLeave(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_FOCUS_GAINED:
-          eventDispatcher.queue<Events::WindowFocusGained>(Events::WindowFocusGained(event.window.windowID));
+          eventDispatcher.queue(Events::WindowFocusGained(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_FOCUS_LOST:
-          eventDispatcher.queue<Events::WindowFocusLost>(Events::WindowFocusLost(event.window.windowID));
+          eventDispatcher.queue(Events::WindowFocusLost(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_MINIMIZED:
-          eventDispatcher.queue<Events::WindowMinimized>(Events::WindowMinimized(event.window.windowID));
+          eventDispatcher.queue(Events::WindowMinimized(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_MAXIMIZED:
-          eventDispatcher.queue<Events::WindowMaximized>(Events::WindowMaximized(event.window.windowID));
+          eventDispatcher.queue(Events::WindowMaximized(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_RESTORED:
-          eventDispatcher.queue<Events::WindowRestored>(Events::WindowRestored(event.window.windowID));
+          eventDispatcher.queue(Events::WindowRestored(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-          eventDispatcher.queue<Events::WindowClosed>(Events::WindowClosed(event.window.windowID));
+          eventDispatcher.queue(Events::WindowClosed(event.window.windowID));
           break;
         case SDL_EVENT_MOUSE_MOTION:
-          eventDispatcher.queue<Events::MouseMotion>(Events::MouseMotion(
+          eventDispatcher.queue(Events::MouseMotion(
             event.motion.xrel, event.motion.yrel,
             event.motion.x, event.motion.y
           ));
