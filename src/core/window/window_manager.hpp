@@ -6,7 +6,7 @@
 namespace Core {
   class WindowManager {
     public:
-      explicit WindowManager(const Application &application, const Events::EventDispatcher &eventDispatcher);
+      explicit WindowManager(const Application &application);
 
       ~WindowManager();
 
@@ -46,8 +46,6 @@ namespace Core {
       void onWindowClose(const Events::WindowClosed &event);
 
       void onWindowExposed(const Events::WindowExposed &event);
-
-      const Events::EventDispatcher &eventDispatcher;
 
       const Application &application;
       std::unordered_map<std::uint32_t, Window> windows;

@@ -49,8 +49,7 @@ namespace Core {
       Logger logger;
 
       const char *name;
-      mutable Events::EventDispatcher eventDispatcher;
-      mutable WindowManager windowManager = WindowManager(*this, eventDispatcher);
+      mutable WindowManager windowManager = WindowManager(*this);
       Graphics::Renderer renderer = Graphics::Renderer(selectGraphicsBackend(), name);
 
       mutable std::vector<std::unique_ptr<Layer>> layers;
