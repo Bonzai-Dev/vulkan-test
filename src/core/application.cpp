@@ -5,9 +5,8 @@
 
 namespace Core {
   Application::Application(const char *name) : name(name) {
-    Events::EventListener<Events::ApplicationQuit>([&](const Events::ApplicationQuit &event) {
+    Events::EventDispatcher::listen<Events::ApplicationQuit>([&](const Events::ApplicationQuit &event) {
       quit();
-      // LOG_CORE_CRITICAL("QUIT");
     });
   }
 
@@ -24,7 +23,7 @@ namespace Core {
       deltaTime = static_cast<double>(currentFrameTime - lastFrameTime) * 1000 /
         static_cast<double>(SDL_GetPerformanceFrequency());
 
-      Events::EventDispatcher<Events::ApplicationQuit>::process();
+      eventDispatcher.process();
       windowManager.update();
     }
   }

@@ -1,9 +1,9 @@
 #pragma once
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <queue>
 #include <typeindex>
-#include <unordered_map>
 #include <core/logger.hpp>
 
 namespace Core::Events {
@@ -27,15 +27,16 @@ namespace Core::Events {
     WindowExposed,
   };
 
-  class EventDispatch
-  {
-    virtual ~EventDispatch() {}
+  class EventDispatch {
+    virtual ~EventDispatch() {
+    }
+
     virtual void FooEvent(int) =0;
   };
 
   class Event {
     public:
-      explicit Event(EventType type, const char *name): name(name), type(type) {
+      explicit Event(EventType type, const char *name) : name(name), type(type) {
       }
 
       virtual ~Event() = default;
@@ -46,51 +47,83 @@ namespace Core::Events {
       const char *name = "Event";
   };
 
-  // template<typename EventT>
-  // requires(std::is_base_of_v<Event, EventT>)
-  // using EventCallback = std::function<void(EventT &)>;
-  //
-  // template<typename EventT>
-  // requires(std::is_base_of_v<Event, EventT>)
-  // class EventSubsystem {
-  //   protected:
-  //     EventSubsystem() = default;
-  //
-  //     static inline std::unordered_map<std::type_index, std::queue<EventCallback<Event>>> listeners;
-  //     static inline std::queue<EventT> eventQueue;
-  // };
-  //
-  // template<typename EventT>
-  // requires(std::is_base_of_v<Event, EventT>)
-  // class EventListener: public EventSubsystem<EventT> {
-  //   public:
-  //     EventListener(const EventCallback<EventT> &listener) {
-  //       this->listeners[std::type_index(typeid(EventT))].push([listener](Event &event) {
-  //          return listener(static_cast<EventT &>(event));
-  //        });
-  //     }
-  // };
-  //
-  // template<typename EventT>
-  // requires(std::is_base_of_v<Event, EventT>)
-  // class EventDispatcher: public EventSubsystem<EventT> {
-  //   public:
-  //     explicit EventDispatcher(const EventT &event) {
-  //       this->eventQueue.push(event);
-  //     }
-  //
-  //     static void process() {
-  //       while (!EventSubsystem<EventT>::eventQueue.empty()) {
-  //         Event &event = EventSubsystem<EventT>::eventQueue.front();
-  //         std::queue<EventCallback<Event>> &eventListeners = EventSubsystem<EventT>::listeners[std::type_index(typeid(event))];
-  //         for (size_t listenerIndex = 0; listenerIndex < eventListeners.size(); listenerIndex++) {
-  //           const EventCallback<Event> &eventListener = eventListeners.front();
-  //           eventListener(event);
-  //         }
-  //
-  //         event.handled = true;
-  //         EventSubsystem<EventT>::eventQueue.pop();
-  //       }
-  //     }
-  // };
+  class EventDispatcher {
+    using ListenerHandle = std::uint64_t;
+    using Listeners = std::map<ListenerHandle, std::function<void(const void *)> >;
+
+    public:
+      EventDispatcher() = default;
+
+      EventDispatcher(EventDispatcher &&) noexcept = default;
+
+      EventDispatcher(const EventDispatcher &) = delete;
+
+      EventDispatcher &operator=(EventDispatcher &&) noexcept = default;
+
+      template<typename T>
+      static std::uint64_t listen(const std::function<void(const T &)> &listener) {
+        auto &eventListeners = listeners[std::type_index(typeid(T))];
+        const auto listenerHandle = ListenerHandle{listenerCount++};
+
+        eventListeners[listenerHandle] = [listener](const auto &msg) {
+          const T *concreteMessage = static_cast<const T*>(msg);
+          listener(*concreteMessage);
+        };
+        return listenerHandle;
+      }
+
+      template<typename T>
+      static void queue(T &&msg) {
+        queuedDispatches.push([m = std::forward<T>(msg)](EventDispatcher &dispatcher) {
+          dispatcher.dispatch(m);
+        });
+      }
+
+      static void removeListener(const std::uint64_t handle) {
+        for (auto &listeners: listeners) {
+          listeners.second.erase(handle);
+        }
+      }
+
+      void process() {
+        while (!queuedDispatches.empty()) {
+          std::function<void(EventDispatcher &)> queuedDispatch = std::move(queuedDispatches.front());
+          queuedDispatches.pop();
+          queuedDispatch(*this);
+        }
+      }
+
+    private:
+      template<typename T>
+      void dispatch(const T &msg) {
+        const auto &listenersIter = listeners.find(std::type_index(typeid(T)));
+        if (listenersIter == listeners.end()) {
+          return; // No listeners for this type of message
+        }
+
+        const auto &[msgType, listeners] = *listenersIter;
+
+        // Cache handles to avoid iterator invalidation. This way listeners can safely remove themselves.
+        std::vector<ListenerHandle> handles;
+        handles.reserve(listeners.size());
+        for (auto &[handle, listener]: listeners) {
+          handles.push_back(handle);
+        }
+
+        for (auto &handle: handles) {
+          const auto &handleAndListener = listeners.find(handle);
+          const bool listenerPresent = handleAndListener != listeners.end();
+          if (listenerPresent) {
+            const auto &listener = handleAndListener->second;
+            listener(&msg);
+          }
+        }
+      }
+
+      static inline std::map<std::type_index, Listeners> listeners;
+      static inline std::queue<std::function<void(EventDispatcher&)>> queuedDispatches;
+      // std::set<ListenerHandle> listenersScheduledForRemoval;
+
+      static inline std::uint64_t listenerCount;
+  };
 }

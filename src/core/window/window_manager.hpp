@@ -31,6 +31,8 @@ namespace Core {
 
       void onWindowMouseEnter(const Events::WindowMouseEnter &event);
 
+      void onWindowMouseMotion(const Events::WindowMouseMotion &event);
+
       void onWindowMouseLeave(const Events::WindowMouseLeave &event);
 
       void onWindowFocusGained(const Events::WindowFocusGained &event);

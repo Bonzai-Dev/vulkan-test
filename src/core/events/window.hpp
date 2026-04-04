@@ -8,7 +8,6 @@ namespace Core::Events {
       windowId(windowId) {
       }
 
-      // SDL window id at which the event occurred.
       const std::uint32_t windowId = 0;
   };
 
@@ -41,6 +40,20 @@ namespace Core::Events {
   class WindowMouseLeave: public WindowEvent {
     public:
       WindowMouseLeave(std::uint32_t windowId) : WindowEvent(EventType::WindowMouseEnter, "WindowMouseLeave", windowId) {}
+  };
+
+  class WindowMouseMotion: public WindowEvent {
+    public:
+      WindowMouseMotion(float deltaX, float deltaY, float positionX, float positionY, std::uint32_t windowId) :
+      WindowEvent(EventType::MouseMotion, "MouseMotion", windowId),
+      x(positionX), y(positionY), deltaX(deltaX), deltaY(deltaY) {
+      }
+
+      const float x = 0;
+      const float y = 0;
+
+      const float deltaX = 0;
+      const float deltaY = 0;
   };
 
   // Keyboard focus has been gained

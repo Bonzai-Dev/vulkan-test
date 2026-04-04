@@ -7,8 +7,7 @@
 #include "window_manager.hpp"
 
 namespace Core {
-  WindowManager::WindowManager(const Application &application):
-  application(application) {
+  WindowManager::WindowManager(const Application &application) : application(application) {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
       LOG_CORE_CRITICAL("Failed to initialize SDL Video: {}", SDL_GetError());
       return;
@@ -22,25 +21,55 @@ namespace Core {
 
     currentDisplay = SDL_GetCurrentDisplayMode(displays[0]);
 
-    Events::EventListener<Events::WindowShown>([&](const Events::WindowShown &event) { onWindowShow(event); });
-    Events::EventListener<Events::WindowHidden>([&](const Events::WindowHidden &event) { onWindowHide(event); });
-    Events::EventListener<Events::WindowResized>([&](const Events::WindowResized &event) { onWindowResize(event); });
-    Events::EventListener<Events::WindowMouseEnter>([&](const Events::WindowMouseEnter &event) { onWindowMouseEnter(event); });
-    Events::EventListener<Events::WindowMouseLeave>([&](const Events::WindowMouseLeave &event) { onWindowMouseLeave(event); });
-    Events::EventListener<Events::WindowFocusGained>([&](const Events::WindowFocusGained &event) { onWindowFocusGained(event); });
-    Events::EventListener<Events::WindowFocusLost>([&](const Events::WindowFocusLost &event) { onWindowFocusLost(event); });
-    Events::EventListener<Events::WindowMinimized>([&](const Events::WindowMinimized &event) { onWindowMinimized(event); });
-    Events::EventListener<Events::WindowMaximized>([&](const Events::WindowMaximized &event) { onWindowMaximized(event); });
-    Events::EventListener<Events::WindowRestored>([&](const Events::WindowRestored &event) { onWindowRestored(event); });
-    Events::EventListener<Events::WindowClosed>([&](const Events::WindowClosed &event) { onWindowClose(event); });
-    Events::EventListener<Events::WindowExposed>([&](const Events::WindowExposed &event) { onWindowExposed(event); });
+    Events::EventDispatcher::listen<Events::WindowShown>([&](const Events::WindowShown &event) {
+      onWindowShow(event);
+    });
+    Events::EventDispatcher::listen<Events::WindowHidden>([&](const Events::WindowHidden &event) {
+      onWindowHide(event);
+    });
+    Events::EventDispatcher::listen<Events::WindowResized>([&](const Events::WindowResized &event) {
+      onWindowResize(event);
+    });
+
+    Events::EventDispatcher::listen<Events::WindowMouseEnter>([&](const Events::WindowMouseEnter &event) {
+      onWindowMouseEnter(event);
+    });
+    Events::EventDispatcher::listen<Events::WindowMouseLeave>([&](const Events::WindowMouseLeave &event) {
+      onWindowMouseLeave(event);
+    });
+    Events::EventDispatcher::listen<Events::WindowMouseMotion>([&](const Events::WindowMouseMotion &event) {
+      onWindowMouseMotion(event);
+    });
+
+    Events::EventDispatcher::listen<Events::WindowFocusGained>([&](const Events::WindowFocusGained &event) {
+      onWindowFocusGained(event);
+    });
+    Events::EventDispatcher::listen<Events::WindowFocusLost>([&](const Events::WindowFocusLost &event) {
+      onWindowFocusLost(event);
+    });
+    Events::EventDispatcher::listen<Events::WindowMinimized>([&](const Events::WindowMinimized &event) {
+      onWindowMinimized(event);
+    });
+    Events::EventDispatcher::listen<Events::WindowMaximized>([&](const Events::WindowMaximized &event) {
+      onWindowMaximized(event);
+    });
+    Events::EventDispatcher::listen<Events::WindowRestored>([&](const Events::WindowRestored &event) {
+      onWindowRestored(event);
+    });
+    Events::EventDispatcher::listen<Events::WindowClosed>([&](const Events::WindowClosed &event) {
+      onWindowClose(event);
+    });
+    Events::EventDispatcher::listen<Events::WindowExposed>([&](const Events::WindowExposed &event) {
+      onWindowExposed(event);
+    });
   }
 
   WindowManager::~WindowManager() {
+    // TODO: remove listeners?
     SDL_free(displays);
   }
 
-  void WindowManager::createWindow(const WindowOptions& options) {
+  void WindowManager::createWindow(const WindowOptions &options) {
     std::uint64_t windowFlags = 0;
 
     switch (application.getGraphicsBackend()) {
@@ -71,52 +100,53 @@ namespace Core {
     while (SDL_PollEvent(&event)) {
       switch (event.type) {
         case SDL_EVENT_QUIT:
-          Events::EventDispatcher(Events::ApplicationQuit{});
+          Events::EventDispatcher::queue<Events::ApplicationQuit>(Events::ApplicationQuit());
           break;
         case SDL_EVENT_WINDOW_SHOWN:
-          // Events::EventDispatcher(Events::WindowShown(event.window.windowID));
+          Events::EventDispatcher::queue(Events::WindowShown(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_HIDDEN:
-          // eventDispatcher.queue(Events::WindowHidden(event.window.windowID));
+          Events::EventDispatcher::queue(Events::WindowHidden(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_RESIZED:
-          // eventDispatcher.queue(Events::WindowResized(
-            // event.window.data1, event.window.data2,
-            // event.window.windowID
-          // ));
+          Events::EventDispatcher::queue(Events::WindowResized(
+          event.window.data1, event.window.data2,
+          event.window.windowID
+          ));
           break;
         case SDL_EVENT_WINDOW_EXPOSED:
-          // eventDispatcher.queue(Events::WindowExposed(event.window.windowID));
+          Events::EventDispatcher::queue(Events::WindowExposed(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_MOUSE_ENTER:
-          // eventDispatcher.queue(Events::WindowMouseEnter(event.window.windowID));
+          Events::EventDispatcher::queue(Events::WindowMouseEnter(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_MOUSE_LEAVE:
-          // eventDispatcher.queue(Events::WindowMouseLeave(event.window.windowID));
+          Events::EventDispatcher::queue(Events::WindowMouseLeave(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_FOCUS_GAINED:
-          // eventDispatcher.queue(Events::WindowFocusGained(event.window.windowID));
+          Events::EventDispatcher::queue(Events::WindowFocusGained(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_FOCUS_LOST:
-          // eventDispatcher.queue(Events::WindowFocusLost(event.window.windowID));
+          Events::EventDispatcher::queue(Events::WindowFocusLost(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_MINIMIZED:
-          // eventDispatcher.queue(Events::WindowMinimized(event.window.windowID));
+          Events::EventDispatcher::queue(Events::WindowMinimized(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_MAXIMIZED:
-          // eventDispatcher.queue(Events::WindowMaximized(event.window.windowID));
+          Events::EventDispatcher::queue(Events::WindowMaximized(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_RESTORED:
-          // eventDispatcher.queue(Events::WindowRestored(event.window.windowID));
+          Events::EventDispatcher::queue(Events::WindowRestored(event.window.windowID));
           break;
         case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-          // eventDispatcher.queue(Events::WindowClosed(event.window.windowID));
+          Events::EventDispatcher::queue(Events::WindowClosed(event.window.windowID));
           break;
         case SDL_EVENT_MOUSE_MOTION:
-          // eventDispatcher.queue(Events::MouseMotion(
-          //   event.motion.xrel, event.motion.yrel,
-          //   event.motion.x, event.motion.y
-          // ));
+          Events::EventDispatcher::queue(Events::WindowMouseMotion(
+            event.motion.xrel, event.motion.yrel,
+            event.motion.x, event.motion.y,
+            event.motion.windowID
+          ));
         default:
           break;
       }
@@ -127,8 +157,7 @@ namespace Core {
   }
 
   void WindowManager::onWindowShow(const Events::WindowShown &event) {
-    LOG_CORE_INFO(event.windowId);
-    // windows.at(event.windowId).show();
+    windows.at(event.windowId).show();
   }
 
   void WindowManager::onWindowHide(const Events::WindowHidden &event) {
@@ -139,39 +168,34 @@ namespace Core {
     windows.at(event.windowId).resize(event.width, event.height);
   }
 
+  void WindowManager::onWindowMouseMotion(const Events::WindowMouseMotion &event) {
+  }
+
   void WindowManager::onWindowMouseEnter(const Events::WindowMouseEnter &event) {
 
   }
 
   void WindowManager::onWindowMouseLeave(const Events::WindowMouseLeave &event) {
-
   }
 
   void WindowManager::onWindowFocusGained(const Events::WindowFocusGained &event) {
-
   }
 
   void WindowManager::onWindowFocusLost(const Events::WindowFocusLost &event) {
-
   }
 
   void WindowManager::onWindowMinimized(const Events::WindowMinimized &event) {
-
   }
 
   void WindowManager::onWindowMaximized(const Events::WindowMaximized &event) {
-
   }
 
   void WindowManager::onWindowRestored(const Events::WindowRestored &event) {
-
   }
 
   void WindowManager::onWindowClose(const Events::WindowClosed &event) {
-
   }
 
   void WindowManager::onWindowExposed(const Events::WindowExposed &event) {
-
   }
 }
