@@ -5,6 +5,7 @@
 #include <core/events/application.hpp>
 #include "window/window.hpp"
 #include "window/window_manager.hpp"
+#include "window/layer.hpp"
 
 namespace Core {
   class Application {

@@ -2,8 +2,12 @@
 #include <memory>
 #include <vector>
 #include "window.hpp"
+#include <core/events/input.hpp>
+#include <core/events/window.hpp>
 
 namespace Core {
+  class Application;
+
   class WindowManager {
     public:
       explicit WindowManager(const Application &application);
@@ -48,6 +52,12 @@ namespace Core {
       void onWindowClose(const Events::WindowClosed &event);
 
       void onWindowExposed(const Events::WindowExposed &event);
+
+      void onKeyPressed(const Events::KeyPressedEvent &event);
+
+      void onKeyReleased(const Events::KeyReleasedEvent &event);
+
+      void pollInputs() const;
 
       const Application &application;
       std::unordered_map<std::uint32_t, Window> windows;

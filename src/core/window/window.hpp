@@ -1,15 +1,15 @@
 #pragma once
 #include <cstdint>
 #include <SDL3/SDL_video.h>
+#include <SDL3/SDL_mouse.h>
 #include <core/events/window.hpp>
-#include "layer.hpp"
 
 namespace Core {
   struct WindowOptions {
     bool mouseLocked = false;
     bool fullScreen = false;
     bool vsync = false;
-    bool minimized = false;
+    bool resizable = true;
 
     std::uint32_t width = 800;
     std::uint32_t height = 600;
@@ -21,7 +21,6 @@ namespace Core {
     public:
       explicit Window(
         const WindowOptions &windowOptions,
-        const SDL_DisplayMode *currentDisplay,
         std::uint64_t windowFlags
       );
 
@@ -41,18 +40,39 @@ namespace Core {
 
       void hide() { shown = false; }
 
+      void focusMouse() { mouseFocused = true; }
+
+      void unfocusMouse() { mouseFocused = false; }
+
+      void focusKeyboard() { keyboardFocused = true; }
+
+      void unfocusKeyboard() { keyboardFocused = false; }
+
+      void minimize() { minimized = true; }
+
+      void maximize() { minimized = false; }
+
       void resize(std::uint32_t width, std::uint32_t height) {
         options.width = width;
         options.height = height;
       }
+
+      void restore() { minimized = false; }
+
+      void close() const { SDL_HideWindow(window); }
+
+      void lockMouse() const { SDL_SetWindowRelativeMouseMode(window, true); }
+
+      void unlockMouse() const { SDL_SetWindowRelativeMouseMode(window, false); }
 
     private:
       WindowOptions options;
 
       std::uint32_t id = 0;
 
+      bool minimized = false;
       bool shown = false;
-      bool mouseFocused = false;
+      bool mouseFocused = false; // Whether if the mouse is in the window or not
       bool keyboardFocused = false;
 
       SDL_Window *window = nullptr;

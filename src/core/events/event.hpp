@@ -25,6 +25,9 @@ namespace Core::Events {
     WindowRestored,
     WindowClosed,
     WindowExposed,
+
+    KeyPressed,
+    KeyReleased
   };
 
   class EventDispatch {
@@ -72,9 +75,9 @@ namespace Core::Events {
         return listenerHandle;
       }
 
-      template<typename T>
-      static void queue(T &&msg) {
-        queuedDispatches.push([m = std::forward<T>(msg)](EventDispatcher &dispatcher) {
+      template<typename EventT>
+      static void queue(EventT &&event) {
+        queuedDispatches.push([m = std::forward<EventT>(event)](EventDispatcher &dispatcher) {
           dispatcher.dispatch(m);
         });
       }
@@ -87,16 +90,16 @@ namespace Core::Events {
 
       void process() {
         while (!queuedDispatches.empty()) {
-          std::function<void(EventDispatcher &)> queuedDispatch = std::move(queuedDispatches.front());
+          std::function<void(EventDispatcher&)> queuedDispatch = std::move(queuedDispatches.front());
           queuedDispatches.pop();
           queuedDispatch(*this);
         }
       }
 
     private:
-      template<typename T>
-      void dispatch(const T &msg) {
-        const auto &listenersIter = listeners.find(std::type_index(typeid(T)));
+      template<typename EventT>
+      void dispatch(const EventT &msg) {
+        const auto &listenersIter = listeners.find(std::type_index(typeid(EventT)));
         if (listenersIter == listeners.end()) {
           return; // No listeners for this type of message
         }
@@ -122,7 +125,6 @@ namespace Core::Events {
 
       static inline std::map<std::type_index, Listeners> listeners;
       static inline std::queue<std::function<void(EventDispatcher&)>> queuedDispatches;
-      // std::set<ListenerHandle> listenersScheduledForRemoval;
 
       static inline std::uint64_t listenerCount;
   };

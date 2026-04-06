@@ -7,15 +7,8 @@
 namespace Core {
   Window::Window(
     const WindowOptions &windowOptions,
-    const SDL_DisplayMode *currentDisplay,
     std::uint64_t windowFlags
   ) : options(windowOptions), windowFlags(windowFlags) {
-    if (windowOptions.fullScreen) {
-      windowFlags |= SDL_WINDOW_FULLSCREEN;
-      options.width = currentDisplay->w;
-      options.height = currentDisplay->h;
-    }
-
     SDL_SetWindowRelativeMouseMode(window, options.mouseLocked);
   }
 
