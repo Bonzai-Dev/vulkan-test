@@ -30,13 +30,6 @@ namespace Core::Events {
     KeyReleased
   };
 
-  class EventDispatch {
-    virtual ~EventDispatch() {
-    }
-
-    virtual void FooEvent(int) =0;
-  };
-
   class Event {
     public:
       explicit Event(EventType type, const char *name) : name(name), type(type) {

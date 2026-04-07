@@ -144,6 +144,8 @@ namespace Core {
           ));
           break;
         case SDL_EVENT_KEY_DOWN:
+          // TODO: Take into account scancodes
+          // https://wiki.libsdl.org/SDL3/BestKeyboardPractices
           EventDispatcher::queue(KeyPressedEvent(event.key.key, event.key.repeat, event.key.windowID));
           break;
         case SDL_EVENT_KEY_UP:
@@ -198,13 +200,9 @@ namespace Core {
   }
 
   void WindowManager::onKeyPressed(const KeyPressedEvent &event) {
-    if (event.repeated)
-      LOG_CORE_INFO("Key code {} is being held.", event.keyCode);
-    else
-      LOG_CORE_INFO("Key code {} has been pressed.", event.keyCode);
+
   }
 
   void WindowManager::onKeyReleased(const KeyReleasedEvent &event) {
-    LOG_CORE_INFO("Key code {} was released.", event.keyCode);
   }
 }

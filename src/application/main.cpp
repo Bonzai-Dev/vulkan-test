@@ -11,14 +11,6 @@ int main() {
     .windowName = "Game"
   });
 
-  // createWindow({
-  //   .mouseLocked = false,
-  //   .fullScreen = true,
-  //   .vsync = true,
-  //   .minimized = true,
-  //   .windowName = "Game"
-  // });
-
   application.addLayer<AppLayer>();
   application.run();
 

@@ -15,10 +15,3 @@ target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_D
 
 # Linking
 add_subdirectory(thirdparty)
-
-# Resource files
-#add_custom_target(
-#    PROJECT_ASSETS
-#    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different "${CMAKE_SOURCE_DIR}/src/game/res" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/res"
-#)
-#add_dependencies(${PROJECT_NAME} PROJECT_ASSETS)
