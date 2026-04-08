@@ -11,8 +11,8 @@ add_subdirectory(glm)
 target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC glm::glm)
 
 # Slang
-#add_subdirectory(slang)
-#target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC slang)
+add_subdirectory(slang)
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC slang)
 
 # Vulkan
 find_package(Vulkan REQUIRED)
