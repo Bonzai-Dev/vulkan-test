@@ -3,6 +3,8 @@
 #include <spdlog/spdlog.h>
 
 namespace Core {
+  class Application;
+
   class Logger {
     public:
       Logger();
