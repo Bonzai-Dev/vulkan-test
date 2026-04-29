@@ -1,7 +1,7 @@
 # Set the output directory for built objects.
 # This makes sure that the dynamic library goes into the build directory automatically.
-set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>")
-set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 
 # Slang
 set(SLANG_ENABLE_PCH OFF CACHE BOOL "" FORCE)

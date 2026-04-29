@@ -2,7 +2,6 @@
 #include <SDL3/SDL_mouse.h>
 #include <core/events/window.hpp>
 #include "window.hpp"
-#include "../application.hpp"
 
 namespace Core {
   Window::Window(
