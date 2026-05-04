@@ -8,6 +8,20 @@ namespace Core {
     Events::EventDispatcher::listen<Events::ApplicationQuit>([&](const Events::ApplicationQuit &event) {
       quit();
     });
+
+    switch (graphicsBackend) {
+      case Graphics::Backend::Vulkan:
+        renderingDevice = std::make_unique<Graphics::VulkanRenderingDevice>(name);
+        break;
+
+      case Graphics::Backend::None:
+        LOG_CORE_CRITICAL("No graphics backend selected. Select a backend to render graphics.");
+        break;
+
+      default:
+        LOG_CORE_CRITICAL("Unsupported graphics backend selected.");
+        break;
+    }
   }
 
   Application::~Application() {

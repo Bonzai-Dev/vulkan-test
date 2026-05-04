@@ -1,24 +1,24 @@
 #pragma once
 #include <cstdint>
 #include <vector>
-#include <core/renderer/render_context.hpp>
+#include <core/renderer/rendering_device.hpp>
 #include "device.hpp"
 #include "volk.h"
 
 namespace Core::Graphics {
-  class VulkanRenderContext : public RenderContext {
+  class VulkanRenderingDevice : public RenderingDevice {
     public:
-      explicit VulkanRenderContext(const char *appName);
+      explicit VulkanRenderingDevice(const char *appName);
 
-      ~VulkanRenderContext() override;
+      ~VulkanRenderingDevice() override;
 
-      VulkanRenderContext(const VulkanRenderContext &other) = delete;
+      VulkanRenderingDevice(const VulkanRenderingDevice &other) = delete;
 
-      VulkanRenderContext &operator=(const VulkanRenderContext &other) = delete;
+      VulkanRenderingDevice &operator=(const VulkanRenderingDevice &other) = delete;
 
-      VulkanRenderContext(VulkanRenderContext &&other) noexcept = delete;
+      VulkanRenderingDevice(VulkanRenderingDevice &&other) noexcept = delete;
 
-      VulkanRenderContext &operator=(VulkanRenderContext &&other) noexcept = delete;
+      VulkanRenderingDevice &operator=(VulkanRenderingDevice &&other) noexcept = delete;
 
       static std::vector<const char*> getExtensions();
 
@@ -57,4 +57,15 @@ namespace Core::Graphics {
 
       VulkanDevice *currentDevice = nullptr;
   };
+
+  std::string vulkanResultToString(VkResult result);
+
+  #define VULKAN_CHECK(vulkanCall) { \
+    VkResult result = vulkanCall; \
+    if (result != VK_SUCCESS) { \
+      std::string vkfunc = #vulkanCall; \
+      vkfunc = vkfunc.substr(0, vkfunc.find('(')); \
+      throw std::runtime_error("Vulkan error: " + vkfunc + " failed with " + vulkanResultToString(result)); \
+    } \
+  }
 }

@@ -1,7 +1,6 @@
 #pragma once
 #include <memory>
 #include <core/logger.hpp>
-#include <core/renderer/renderer.hpp>
 #include <core/events/application.hpp>
 #include "window/window.hpp"
 #include "window/window_manager.hpp"
@@ -38,21 +37,21 @@ namespace Core {
 
       const double &getDeltaTime() const { return deltaTime; }
 
-      const Graphics::Backend &getGraphicsBackend() const { return renderer.backend; }
-
       void quit() const;
 
       void run() const;
 
+      const Graphics::Backend graphicsBackend = selectGraphicsBackend();
+
     private:
       Graphics::Backend selectGraphicsBackend() const;
+      std::shared_ptr<Graphics::RenderingDevice> renderingDevice;
 
       Logger logger;
 
       const char *name;
       mutable Events::EventDispatcher eventDispatcher;
       mutable WindowManager windowManager = WindowManager(*this);
-      Graphics::Renderer renderer = Graphics::Renderer(selectGraphicsBackend(), name);
 
       mutable std::vector<std::unique_ptr<Layer>> layers;
 

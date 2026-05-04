@@ -3,11 +3,10 @@
 #include <SDL3/SDL_vulkan.h>
 #include <core/application.hpp>
 #include <core/logger.hpp>
-#include "util.hpp"
-#include "render_context.hpp"
+#include "rendering_device.hpp"
 
 namespace Core::Graphics {
-  VulkanRenderContext::VulkanRenderContext(const char *appName) {
+  VulkanRenderingDevice::VulkanRenderingDevice(const char *appName) {
     if (volkInitialize() != VK_SUCCESS) {
       LOG_CORE_CRITICAL("Failed to load Vulkan. Vulkan drivers may be missing on your system.");
       return;
@@ -29,12 +28,12 @@ namespace Core::Graphics {
     );
   }
 
-  VulkanRenderContext::~VulkanRenderContext() {
+  VulkanRenderingDevice::~VulkanRenderingDevice() {
     if (debugMessenger)
       vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
   }
 
-  void VulkanRenderContext::createInstance(
+  void VulkanRenderingDevice::createInstance(
     const char *appName,
     const std::vector<const char*> &extensions,
     const std::vector<const char*> &layers
@@ -70,7 +69,7 @@ namespace Core::Graphics {
         .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
                        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-        .pfnUserCallback = &VulkanRenderContext::debugCallback,
+        .pfnUserCallback = &VulkanRenderingDevice::debugCallback,
         .pUserData = nullptr
       };
       createInfo.pNext = &debugMessengerCreateInfo;
@@ -83,7 +82,7 @@ namespace Core::Graphics {
       VULKAN_CHECK(vkCreateDebugUtilsMessengerEXT(instance, &debugMessengerCreateInfo, nullptr, &debugMessenger));
   }
 
-  std::vector<VulkanDevice> &VulkanRenderContext::getDevices() const {
+  std::vector<VulkanDevice> &VulkanRenderingDevice::getDevices() const {
     static bool deviceFetched = false;
     static std::vector<VulkanDevice> devices;
 
@@ -101,7 +100,7 @@ namespace Core::Graphics {
     vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data());
 
     for (size_t deviceIndex = 0; deviceIndex < deviceCount; deviceIndex++) {
-      VulkanDevice device;
+      VulkanDevice device(instance);
       device.createPhysicalDevice(physicalDevices[deviceIndex]);
       devices.push_back(std::move(device));
       LOG_CORE_INFO("Found {}", devices[deviceIndex].getName());
@@ -117,7 +116,7 @@ namespace Core::Graphics {
     return devices;
   }
 
-  VulkanDevice *VulkanRenderContext::chooseDevice() {
+  VulkanDevice *VulkanRenderingDevice::chooseDevice() {
     static bool deviceChosen = false;
     static std::map<int, VulkanDevice*> deviceRankings;
     if (deviceChosen)
@@ -130,7 +129,7 @@ namespace Core::Graphics {
     return deviceRankings.rbegin()->second;
   }
 
-  VkBool32 VulkanRenderContext::debugCallback(
+  VkBool32 VulkanRenderingDevice::debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     const VkDebugUtilsMessengerCallbackDataEXT *callbackData,
@@ -160,7 +159,7 @@ namespace Core::Graphics {
     return VK_FALSE;
   }
 
-  std::vector<const char*> VulkanRenderContext::getInstanceLayers() {
+  std::vector<const char*> VulkanRenderingDevice::getInstanceLayers() {
     static bool foundLayers = false;
     static std::vector<const char*> instanceLayers;
 
@@ -186,15 +185,15 @@ namespace Core::Graphics {
         LOG_CORE_INFO("Validation layer \"{}\" has been found.", validationLayer);
       else
         LOG_CORE_WARNING(""
-          "Validation layers for Vulkan has been requested while in debug mode, but are not available.",
-          validationLayer
-        );
+                       "Validation layers for Vulkan has been requested while in debug mode, but are not available.",
+                       validationLayer
+      );
     }
 
     return instanceLayers;
   }
 
-  std::vector<const char*> VulkanRenderContext::getExtensions() {
+  std::vector<const char*> VulkanRenderingDevice::getExtensions() {
     static bool foundExtensions = false;
     static uint32_t extensionCount = 0;
     static char const *const*extensions = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
@@ -217,7 +216,7 @@ namespace Core::Graphics {
     return extensionList;
   }
 
-  int VulkanRenderContext::rateDevice(const VulkanDevice &device) {
+  int VulkanRenderingDevice::rateDevice(const VulkanDevice &device) {
     int score = 0;
 
     const VkPhysicalDeviceProperties deviceProperties = device.getProperties();
@@ -235,5 +234,40 @@ namespace Core::Graphics {
       return 0;
 
     return score;
+  }
+
+  std::string vulkanResultToString(VkResult result) {
+    switch (result) {
+      case VK_SUCCESS: return "VK_SUCCESS";
+      case VK_NOT_READY: return "VK_NOT_READY";
+      case VK_TIMEOUT: return "VK_TIMEOUT";
+      case VK_EVENT_SET: return "VK_EVENT_SET";
+      case VK_EVENT_RESET: return "VK_EVENT_RESET";
+      case VK_INCOMPLETE: return "VK_INCOMPLETE";
+      case VK_ERROR_OUT_OF_HOST_MEMORY: return "VK_ERROR_OUT_OF_HOST_MEMORY";
+      case VK_ERROR_OUT_OF_DEVICE_MEMORY: return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+      case VK_ERROR_INITIALIZATION_FAILED: return "VK_ERROR_INITIALIZATION_FAILED";
+      case VK_ERROR_DEVICE_LOST: return "VK_ERROR_DEVICE_LOST";
+      case VK_ERROR_MEMORY_MAP_FAILED: return "VK_ERROR_MEMORY_MAP_FAILED";
+      case VK_ERROR_LAYER_NOT_PRESENT: return "VK_ERROR_LAYER_NOT_PRESENT";
+      case VK_ERROR_EXTENSION_NOT_PRESENT: return "VK_ERROR_EXTENSION_NOT_PRESENT";
+      case VK_ERROR_FEATURE_NOT_PRESENT: return "VK_ERROR_FEATURE_NOT_PRESENT";
+      case VK_ERROR_INCOMPATIBLE_DRIVER: return "VK_ERROR_INCOMPATIBLE_DRIVER";
+      case VK_ERROR_TOO_MANY_OBJECTS: return "VK_ERROR_TOO_MANY_OBJECTS";
+      case VK_ERROR_FORMAT_NOT_SUPPORTED: return "VK_ERROR_FORMAT_NOT_SUPPORTED";
+      case VK_ERROR_FRAGMENTED_POOL: return "VK_ERROR_FRAGMENTED_POOL";
+      case VK_ERROR_OUT_OF_POOL_MEMORY: return "VK_ERROR_OUT_OF_POOL_MEMORY";
+      case VK_ERROR_INVALID_EXTERNAL_HANDLE: return "VK_ERROR_INVALID_EXTERNAL_HANDLE";
+      case VK_ERROR_SURFACE_LOST_KHR: return "VK_ERROR_SURFACE_LOST_KHR";
+      case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR: return "VK_ERROR_NATIVE_WINDOW_IN_USE_KHR";
+      case VK_SUBOPTIMAL_KHR: return "VK_SUBOPTIMAL_KHR";
+      case VK_ERROR_OUT_OF_DATE_KHR: return "VK_ERROR_OUT_OF_DATE_KHR";
+      case VK_ERROR_INCOMPATIBLE_DISPLAY_KHR: return "VK_ERROR_INCOMPATIBLE_DISPLAY_KHR";
+      case VK_ERROR_VALIDATION_FAILED_EXT: return "VK_ERROR_VALIDATION_FAILED_EXT";
+      case VK_ERROR_INVALID_SHADER_NV: return "VK_ERROR_INVALID_SHADER_NV";
+      case VK_ERROR_NOT_PERMITTED_EXT: return "VK_ERROR_NOT_PERMITTED_EXT";
+      default:
+        return "Unknown VkResult: " + std::to_string(result);
+    }
   }
 }

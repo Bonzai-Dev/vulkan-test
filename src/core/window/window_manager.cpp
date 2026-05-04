@@ -51,7 +51,7 @@ namespace Core {
   void WindowManager::createWindow(const WindowOptions &options) {
     std::uint64_t windowFlags = 0;
 
-    switch (application.getGraphicsBackend()) {
+    switch (application.graphicsBackend) {
       case Graphics::Backend::Vulkan:
         windowFlags |= SDL_WINDOW_VULKAN;
         break;

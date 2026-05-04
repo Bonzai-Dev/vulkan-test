@@ -1,16 +1,17 @@
 #pragma once
+#include "vk_mem_alloc.h"
 #include "queue.hpp"
 
 namespace Core::Graphics {
-  class VulkanRenderContext;
+  class VulkanRenderingDevice;
 
-  class VulkanWindow;
+  class VulkanWindowSurface;
 
   class VulkanQueue;
 
   class VulkanDevice {
     public:
-      VulkanDevice();
+      VulkanDevice(VkInstance instance);
 
       // Class cannot be copied, only moved (since it owns a Vulkan device handle)
       VulkanDevice(const VulkanDevice &other) = delete;
@@ -54,6 +55,8 @@ namespace Core::Graphics {
 
       std::vector<VulkanQueue> findTransferQueues(std::vector<std::uint32_t> &usedQueueCount) const;
 
+      VkInstance &instance;
+
       VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
       VkDevice logicalDevice = VK_NULL_HANDLE;
       VkPhysicalDeviceProperties deviceProperties{};
@@ -73,5 +76,7 @@ namespace Core::Graphics {
       std::vector<VulkanQueue> computeQueues;
       // Additional transfer queues to run async transfers (besides the main graphics one)
       std::vector<VulkanQueue> transferQueues;
+
+      VmaAllocator memoryAllocator;
   };
 }

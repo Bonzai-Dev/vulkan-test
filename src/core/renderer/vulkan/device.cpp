@@ -1,24 +1,26 @@
 #include <core/logger.hpp>
-#include "util.hpp"
 #include "queue.hpp"
-#include "render_context.hpp"
+#include "rendering_device.hpp"
 #include "device.hpp"
+#include "vk_mem_alloc.h"
 
 namespace Core::Graphics {
-  VulkanDevice::VulkanDevice() = default;
+  VulkanDevice::VulkanDevice(VkInstance instance): instance(instance) {
+  }
 
-  VulkanDevice::VulkanDevice(VulkanDevice &&other) noexcept:
-  physicalDevice(other.physicalDevice),
-  logicalDevice(other.logicalDevice),
-  deviceProperties(std::move(other.deviceProperties)),
-  deviceMemoryProperties(std::move(other.deviceMemoryProperties)),
-  deviceFeatures(std::move(other.deviceFeatures)),
-  supportedStages(other.supportedStages),
-  queueFamilyProperties(std::move(other.queueFamilyProperties)),
-  presentQueue(other.presentQueue),
-  graphicsQueue(std::move(other.graphicsQueue)),
-  computeQueues(std::move(other.computeQueues)),
-  transferQueues(std::move(other.transferQueues)) {
+  VulkanDevice::VulkanDevice(VulkanDevice &&other) noexcept : physicalDevice(other.physicalDevice),
+    logicalDevice(other.logicalDevice),
+    deviceProperties(std::move(other.deviceProperties)),
+    deviceMemoryProperties(std::move(other.deviceMemoryProperties)),
+    deviceFeatures(std::move(other.deviceFeatures)),
+    supportedStages(other.supportedStages),
+    queueFamilyProperties(std::move(other.queueFamilyProperties)),
+    presentQueue(other.presentQueue),
+    graphicsQueue(std::move(other.graphicsQueue)),
+    computeQueues(std::move(other.computeQueues)),
+    transferQueues(std::move(other.transferQueues)),
+    memoryAllocator(other.memoryAllocator),
+    instance(other.instance) {
     other.physicalDevice = VK_NULL_HANDLE;
     other.logicalDevice = VK_NULL_HANDLE;
     other.presentQueue = VK_NULL_HANDLE;
@@ -39,6 +41,8 @@ namespace Core::Graphics {
     computeQueues = std::move(other.computeQueues);
     transferQueues = std::move(other.transferQueues);
     presentQueue = other.presentQueue;
+    instance = other.instance;
+    memoryAllocator = other.memoryAllocator;
 
     other.physicalDevice = VK_NULL_HANDLE;
     other.logicalDevice = VK_NULL_HANDLE;
@@ -48,10 +52,11 @@ namespace Core::Graphics {
   }
 
   VulkanDevice::~VulkanDevice() {
-    physicalDevice = VK_NULL_HANDLE;
     if (logicalDevice) {
       vkDestroyDevice(logicalDevice, nullptr);
       logicalDevice = VK_NULL_HANDLE;
+      physicalDevice = VK_NULL_HANDLE;
+      vmaDestroyAllocator(memoryAllocator);
     }
   }
 
@@ -75,13 +80,9 @@ namespace Core::Graphics {
   }
 
   void VulkanDevice::createLogicalDevice() {
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
-    queueFamilyProperties.resize(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilyProperties.data());
-
-    // Creating queues
+    const std::uint32_t queueFamilyCount = queueFamilyProperties.size();
     std::vector<VkDeviceQueueCreateInfo> queuesCreateInfo;
+
     // Track the number of queues for each family. The index is the same as the queue family index.
     std::vector<std::uint32_t> usedQueuesCount(queueFamilyCount, 0);
 
@@ -90,7 +91,7 @@ namespace Core::Graphics {
     transferQueues = findTransferQueues(usedQueuesCount);
 
     for (size_t queueIndex = 0; queueIndex < queueFamilyCount; queueIndex++) {
-      const VkDeviceQueueCreateInfo deviceQueueCreateInfo{
+      const VkDeviceQueueCreateInfo deviceQueueCreateInfo {
         .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
         .queueFamilyIndex = static_cast<std::uint32_t>(queueIndex),
         .queueCount = usedQueuesCount[queueIndex]
@@ -100,7 +101,7 @@ namespace Core::Graphics {
         queuesCreateInfo.push_back(deviceQueueCreateInfo);
     }
 
-    std::vector<std::vector<float> > queuePriorities;
+    std::vector<std::vector<float>> queuePriorities;
     queuePriorities.resize(queuesCreateInfo.size());
     for (size_t infoIndex = 0; infoIndex < queuesCreateInfo.size(); infoIndex++) {
       queuePriorities[infoIndex].resize(queuesCreateInfo[infoIndex].queueCount, 1.0f);
@@ -122,6 +123,36 @@ namespace Core::Graphics {
     volkLoadDevice(logicalDevice);
 
     initializeQueues();
+
+    VmaVulkanFunctions vulkanFunctions {
+      .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+      .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
+      .vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties,
+      .vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties,
+      .vkAllocateMemory = vkAllocateMemory,
+      .vkFreeMemory = vkFreeMemory,
+      .vkMapMemory = vkMapMemory,
+      .vkUnmapMemory = vkUnmapMemory,
+      .vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges,
+      .vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges,
+      .vkBindBufferMemory = vkBindBufferMemory,
+      .vkBindImageMemory = vkBindImageMemory,
+      .vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements,
+      .vkGetImageMemoryRequirements = vkGetImageMemoryRequirements,
+      .vkCreateBuffer = vkCreateBuffer,
+      .vkDestroyBuffer = vkDestroyBuffer,
+      .vkCreateImage = vkCreateImage,
+      .vkDestroyImage = vkDestroyImage,
+      .vkCmdCopyBuffer = vkCmdCopyBuffer,
+    };
+
+    VmaAllocatorCreateInfo allocatorCreateInfo = {
+      .physicalDevice = physicalDevice,
+      .device = logicalDevice,
+      .pVulkanFunctions = &vulkanFunctions,
+      .instance = instance
+    };
+    vmaCreateAllocator(&allocatorCreateInfo, &memoryAllocator);
   }
 
   void VulkanDevice::initializeQueues() {
@@ -179,7 +210,7 @@ namespace Core::Graphics {
       }
 #endif
 
-      if (VulkanRenderContext::validationLayersEnabled())
+      if (VulkanRenderingDevice::validationLayersEnabled())
         extensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
 
       extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);

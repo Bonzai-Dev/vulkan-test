@@ -3,6 +3,7 @@
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_mouse.h>
 #include <core/events/window.hpp>
+#include <core/renderer/vulkan/window_surface.hpp>
 
 namespace Core {
   struct WindowOptions {
@@ -23,6 +24,8 @@ namespace Core {
         const WindowOptions &windowOptions,
         std::uint64_t windowFlags
       );
+
+      WindowOptions options;
 
       Window(const Window &other) = delete;
 
@@ -66,8 +69,6 @@ namespace Core {
       void unlockMouse() const { SDL_SetWindowRelativeMouseMode(window, false); }
 
     private:
-      WindowOptions options;
-
       std::uint32_t id = 0;
 
       bool minimized = false;

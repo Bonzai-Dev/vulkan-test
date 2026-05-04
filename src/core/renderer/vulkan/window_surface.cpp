@@ -2,46 +2,29 @@
 #include <SDL3/SDL_vulkan.h>
 #include <core/window/window.hpp>
 #include <core/logger.hpp>
-#include "util.hpp"
-#include "render_context.hpp"
-#include "window.hpp"
+#include "rendering_device.hpp"
+#include "window_surface.hpp"
 
 namespace Core::Graphics {
-  VulkanWindow::VulkanWindow(
-    std::shared_ptr<VulkanRenderContext> context,
-    const WindowOptions &options, SDL_WindowFlags flags
-  ):
-  vulkanContext(std::move(context)),
-  options(options) {
-   //  window = SDL_CreateWindow(
-   //   options.windowName,
-   //   static_cast<int>(options.width),
-   //   static_cast<int>(options.height),
-   //   flags
-   // );
-   //
-   //  if (!window) {
-   //    LOG_CORE_ERROR("Failed to create window: {}", SDL_GetError());
-   //    return;
-   //  }
-
+  VulkanWindowSurface::VulkanWindowSurface(SDL_Window &window):
+  window(window) {
     createSurface();
     createSwapChain();
   }
 
-  VulkanWindow::~VulkanWindow() {
+  VulkanWindowSurface::~VulkanWindowSurface() {
     for (auto &imageView : swapChainImageViews)
       destroyImageView(imageView);
 
     vkDestroySurfaceKHR(vulkanContext->getInstance(), surface, nullptr);
   }
 
-  void VulkanWindow::createSurface() {
-    // if (!SDL_Vulkan_CreateSurface(window, vulkanContext->getInstance(), nullptr, &surface))
-    //   throw std::runtime_error("Failed to create window surface: " + std::string(SDL_GetError()));
+  void VulkanWindowSurface::createSurface() {
+    if (!SDL_Vulkan_CreateSurface(&window, vulkanContext->getInstance(), nullptr, &surface))
+      throw std::runtime_error("Failed to create window surface: " + std::string(SDL_GetError()));
   }
 
-  void VulkanWindow::createSwapChain() {
+  void VulkanWindowSurface::createSwapChain() {
     const VulkanDevice &vulkanDevice = *vulkanContext->getCurrentDevice();
     VkBool32 supportPresent = false;
     vkGetPhysicalDeviceSurfaceSupportKHR(
@@ -109,7 +92,7 @@ namespace Core::Graphics {
     LOG_CORE_DEBUG("Swap chain contains {} image(s).", swapChainImageCount);
   }
 
-  VkSurfaceFormatKHR VulkanWindow::chooseSurfaceFormat() const {
+  VkSurfaceFormatKHR VulkanWindowSurface::chooseSurfaceFormat() const {
     const VulkanDevice &vulkanDevice = *vulkanContext->getCurrentDevice();
     std::uint32_t formatsCount = 0;
     VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(
@@ -136,7 +119,7 @@ namespace Core::Graphics {
     return chosenFormat;
   }
 
-  VkPresentModeKHR VulkanWindow::choosePresentMode() const {
+  VkPresentModeKHR VulkanWindowSurface::choosePresentMode() const {
     const VulkanDevice &vulkanDevice = *vulkanContext->getCurrentDevice();
     std::uint32_t presentModesCount = 0;
     vkGetPhysicalDeviceSurfacePresentModesKHR(
@@ -150,13 +133,13 @@ namespace Core::Graphics {
 
     // FIFO is guaranteed to be present
     VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    if (!options.vsync && std::ranges::find(presentModes, VK_PRESENT_MODE_IMMEDIATE_KHR) != presentModes.end())
-      presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+    // if (!options.vsync && std::ranges::find(presentModes, VK_PRESENT_MODE_IMMEDIATE_KHR) != presentModes.end())
+    //   presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
 
     return presentMode;
   }
 
-  VkImageView VulkanWindow::createImageView(
+  VkImageView VulkanWindowSurface::createImageView(
     const VkImage &image,
     const VkFormat &format,
     VkImageAspectFlags aspectFlags,
@@ -191,7 +174,7 @@ namespace Core::Graphics {
     return imageView;
   }
 
-  void VulkanWindow::destroyImageView(const VkImageView &imageView) const {
+  void VulkanWindowSurface::destroyImageView(const VkImageView &imageView) const {
     const VulkanDevice &vulkanDevice = *vulkanContext->getCurrentDevice();
     vkDestroyImageView(vulkanDevice.getDevice(), imageView, nullptr);
   }
