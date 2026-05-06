@@ -3,7 +3,7 @@
 #include <core/events/window.hpp>
 #include "window.hpp"
 
-namespace Core {
+namespace Core::Graphics {
   Window::Window(
     const WindowOptions &windowOptions,
     std::uint64_t windowFlags

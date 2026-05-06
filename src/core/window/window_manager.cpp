@@ -48,7 +48,7 @@ namespace Core {
     SDL_free(displays);
   }
 
-  void WindowManager::createWindow(const WindowOptions &options) {
+  void WindowManager::createWindow(const Graphics::WindowOptions &options) {
     std::uint64_t windowFlags = 0;
 
     switch (application.graphicsBackend) {
@@ -81,7 +81,7 @@ namespace Core {
       return;
     }
 
-    windows.emplace(SDL_GetWindowID(window), Window(options, windowFlags));
+    windows.emplace(SDL_GetWindowID(window), Graphics::Window(options, windowFlags));
   }
 
   void WindowManager::update() const {

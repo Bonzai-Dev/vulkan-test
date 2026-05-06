@@ -1,9 +1,7 @@
 #pragma once
-#include <memory>
-#include <vector>
-#include "window.hpp"
 #include <core/events/input.hpp>
 #include <core/events/window.hpp>
+#include <core/renderer/window.hpp>
 
 namespace Core {
   class Application;
@@ -22,7 +20,7 @@ namespace Core {
 
       WindowManager& operator=(WindowManager&&) = delete;
 
-      void createWindow(const WindowOptions& options);
+      void createWindow(const Graphics::WindowOptions& options);
 
       void update() const;
 
@@ -60,7 +58,7 @@ namespace Core {
       void pollInputs() const;
 
       const Application &application;
-      std::unordered_map<std::uint32_t, Window> windows;
+      std::unordered_map<std::uint32_t, Graphics::Window> windows;
 
       int displayCount = 0;
       mutable SDL_DisplayID *displays;

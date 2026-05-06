@@ -2,7 +2,7 @@
 #include <memory>
 #include <core/logger.hpp>
 #include <core/events/application.hpp>
-#include "window/window.hpp"
+#include "renderer/window.hpp"
 #include "window/window_manager.hpp"
 #include "window/layer.hpp"
 
@@ -33,7 +33,7 @@ namespace Core {
         layers.push_back(std::make_unique<LayerT>(*this));
       }
 
-      void createWindow(const WindowOptions &options) const { windowManager.createWindow(options); }
+      void createWindow(const Graphics::WindowOptions &options) const { windowManager.createWindow(options); }
 
       const double &getDeltaTime() const { return deltaTime; }
 

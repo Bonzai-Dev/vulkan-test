@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <vector>
 #include <core/renderer/rendering_device.hpp>
-#include "device.hpp"
+#include "vulkan_device.hpp"
 #include "volk.h"
 
 namespace Core::Graphics {

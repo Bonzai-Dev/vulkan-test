@@ -1,11 +1,12 @@
 #pragma once
+
 #include <cstdint>
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_mouse.h>
 #include <core/events/window.hpp>
-#include <core/renderer/vulkan/window_surface.hpp>
+#include <core/renderer/vulkan/vulkan_swapchain.hpp>
 
-namespace Core {
+namespace Core::Graphics {
   struct WindowOptions {
     bool mouseLocked = false;
     bool fullScreen = false;
@@ -68,7 +69,7 @@ namespace Core {
 
       void unlockMouse() const { SDL_SetWindowRelativeMouseMode(window, false); }
 
-    private:
+    protected:
       std::uint32_t id = 0;
 
       bool minimized = false;

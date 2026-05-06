@@ -1,11 +1,11 @@
 #pragma once
 #include "vk_mem_alloc.h"
-#include "queue.hpp"
+#include "vulkan_queue.hpp"
 
 namespace Core::Graphics {
   class VulkanRenderingDevice;
 
-  class VulkanWindowSurface;
+  class VulkanSwapChain;
 
   class VulkanQueue;
 

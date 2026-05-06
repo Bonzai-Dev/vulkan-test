@@ -1,42 +1,42 @@
 #pragma once
 #include <cstdint>
 #include <memory>
-#include "rendering_device.hpp"
+#include "vulkan_rendering_device.hpp"
 
 namespace Core::Graphics {
-  class VulkanWindowSurface {
-    enum SwapchainStatus {
+  class VulkanSwapChain {
+    enum SwapChainStatus {
       /// We already called VulkanWindow::acquireNextImage.
       ///
       /// Can only go into this state if we're coming from SwapchainReleased
-      SwapchainAcquired,
+      SwapChainAcquired,
       /// We already called VulkanWindow::getImageAcquiredSemaphore.
       /// Further calls to getImageAcquiredSemaphore will return null.
       /// It is rendering or intends to into this swapchain.
       ///
       /// Can only go into this state if we're coming from SwapchainAcquired
-      SwapchainUsedInRendering,
+      SwapChainUsedInRendering,
       /// We've come from SwapchainUsedInRendering and are waiting for
       /// VulkanDevice::commitAndNextCommandBuffer to present us
-      SwapchainPendingSwap,
+      SwapChainPendingSwap,
       /// We don't own a swapchain. Cannot render to this window.
       ///
       /// This status should not last long unless we're not initialized yet.
-      SwapchainReleased
+      SwapChainReleased
     };
 
     public:
-      VulkanWindowSurface(SDL_Window &window);
+      VulkanSwapChain(SDL_Window &window);
 
-      VulkanWindowSurface(const VulkanWindowSurface &other) = delete;
+      VulkanSwapChain(const VulkanSwapChain &other) = delete;
 
-      VulkanWindowSurface &operator=(const VulkanWindowSurface &other) = delete;
+      VulkanSwapChain &operator=(const VulkanSwapChain &other) = delete;
 
-      VulkanWindowSurface(VulkanWindowSurface &&other) = delete;
+      VulkanSwapChain(VulkanSwapChain &&other) = delete;
 
-      VulkanWindowSurface &operator=(VulkanWindowSurface &&other) = delete;
+      VulkanSwapChain &operator=(VulkanSwapChain &&other) = delete;
 
-      ~VulkanWindowSurface();
+      ~VulkanSwapChain();
 
     private:
       VkImageView createImageView(

@@ -1,7 +1,7 @@
 #include <core/logger.hpp>
-#include "queue.hpp"
-#include "rendering_device.hpp"
-#include "device.hpp"
+#include "vulkan_queue.hpp"
+#include "vulkan_rendering_device.hpp"
+#include "vulkan_device.hpp"
 #include "vk_mem_alloc.h"
 
 namespace Core::Graphics {

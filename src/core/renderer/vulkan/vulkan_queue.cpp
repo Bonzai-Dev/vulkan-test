@@ -1,8 +1,8 @@
 #include <cstdint>
 #include <core/logger.hpp>
-#include "rendering_device.hpp"
+#include "vulkan_rendering_device.hpp"
 #include "volk.h"
-#include "queue.hpp"
+#include "vulkan_queue.hpp"
 
 namespace Core::Graphics {
   VulkanQueue::VulkanQueue(

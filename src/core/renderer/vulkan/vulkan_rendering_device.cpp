@@ -3,7 +3,7 @@
 #include <SDL3/SDL_vulkan.h>
 #include <core/application.hpp>
 #include <core/logger.hpp>
-#include "rendering_device.hpp"
+#include "vulkan_rendering_device.hpp"
 
 namespace Core::Graphics {
   VulkanRenderingDevice::VulkanRenderingDevice(const char *appName) {
