@@ -6,6 +6,8 @@
 #include <core/application.hpp>
 #include "window_manager.hpp"
 
+#include "core/renderer/vulkan/vulkan_window.hpp"
+
 using namespace Core::Events;
 
 namespace Core {
@@ -51,14 +53,6 @@ namespace Core {
   void WindowManager::createWindow(const Graphics::WindowOptions &options) {
     std::uint64_t windowFlags = 0;
 
-    switch (application.graphicsBackend) {
-      case Graphics::Backend::Vulkan:
-        windowFlags |= SDL_WINDOW_VULKAN;
-        break;
-      default:
-        break;
-    }
-
     std::uint64_t width = options.width;
     std::uint64_t height = options.height;
     if (options.fullScreen) {
@@ -70,18 +64,18 @@ namespace Core {
     if (options.resizable)
       windowFlags |= SDL_WINDOW_RESIZABLE;
 
-    SDL_Window *window = SDL_CreateWindow(
-      options.windowName,
-      static_cast<int>(width), static_cast<int>(height),
-      windowFlags
-    );
-
-    if (!window) {
-      LOG_CORE_ERROR("Failed to create window: {}", SDL_GetError());
-      return;
+    switch (application.graphicsBackend) {
+      case Graphics::Backend::Vulkan:
+        windowFlags |= SDL_WINDOW_VULKAN;
+        // Graphics::VulkanWindow();
+        break;
+      default:
+        break;
     }
 
-    windows.emplace(SDL_GetWindowID(window), Graphics::Window(options, windowFlags));
+    // windows.emplace(SDL_GetWindowID(window), Graphics::Window(options, windowFlags));
+
+    // windows.push();
   }
 
   void WindowManager::update() const {

@@ -8,6 +8,17 @@ namespace Core::Graphics {
     const WindowOptions &windowOptions,
     std::uint64_t windowFlags
   ) : options(windowOptions), windowFlags(windowFlags) {
+      window = SDL_CreateWindow(
+        options.windowName,
+      static_cast<int>(windowOptions.width), static_cast<int>(windowOptions.height),
+        windowFlags
+      );
+
+    if (!window) {
+      LOG_CORE_ERROR("Failed to create window: {}", SDL_GetError());
+      return;
+    }
+
     SDL_SetWindowRelativeMouseMode(window, options.mouseLocked);
   }
 
