@@ -7,21 +7,26 @@
 namespace Core::Graphics {
   Window::Window(
     const DisplayInfo &displayInfo,
-    const WindowOptions &windowOptions,
-    std::uint64_t windowFlags
-  ) : options(windowOptions), displayInfo(displayInfo), windowFlags(windowFlags) {
+    const WindowOptions &windowOptions
+  ) : options(windowOptions), displayInfo(displayInfo) {
     std::uint32_t width = windowOptions.width;
     std::uint32_t height = windowOptions.height;
 
-    if (windowOptions.fullScreen) {
+    if (options.fullScreen) {
+      windowFlags |= SDL_WINDOW_FULLSCREEN;
       width = displayInfo.width;
       height = displayInfo.height;
     }
 
+    if (options.resizable)
+      windowFlags |= SDL_WINDOW_RESIZABLE;
+
+    windowFlags |= SDL_WINDOW_VULKAN;
+
     window = SDL_CreateWindow(
-       options.windowName,
-       static_cast<int>(width), static_cast<int>(height),
-       windowFlags
+      options.windowName,
+      static_cast<int>(width), static_cast<int>(height),
+      windowFlags
     );
 
     if (!window) {

@@ -1,4 +1,3 @@
-#include <iostream>
 #include <map>
 #include <SDL3/SDL_vulkan.h>
 #include <core/application.hpp>
@@ -31,6 +30,10 @@ namespace Core::Graphics {
   VulkanRenderingDevice::~VulkanRenderingDevice() {
     if (debugMessenger)
       vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+  }
+
+  void VulkanRenderingDevice::createWindow() {
+
   }
 
   void VulkanRenderingDevice::createInstance(
@@ -81,6 +84,10 @@ namespace Core::Graphics {
     if (validationLayersEnabled())
       VULKAN_CHECK(vkCreateDebugUtilsMessengerEXT(instance, &debugMessengerCreateInfo, nullptr, &debugMessenger));
   }
+
+  // void VulkanRenderingDevice::createWindow() {
+  //
+  // }
 
   std::vector<VulkanDevice> &VulkanRenderingDevice::getDevices() const {
     static bool deviceFetched = false;

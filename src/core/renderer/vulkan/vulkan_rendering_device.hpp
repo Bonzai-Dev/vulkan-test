@@ -34,6 +34,8 @@ namespace Core::Graphics {
 
       int rateDevice(const VulkanDevice &device);
 
+      void createWindow() override;
+
     private:
       void createInstance(
         const char *appName,

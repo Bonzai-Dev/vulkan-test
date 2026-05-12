@@ -12,6 +12,6 @@ namespace Core::Graphics {
 
       virtual ~RenderingDevice() = default;
 
-      virtual void createWindow();
+      virtual void createWindow() {};
   };
 }

@@ -6,8 +6,12 @@
 #include "vulkan_swapchain.hpp"
 
 namespace Core::Graphics {
-  VulkanSwapChain::VulkanSwapChain(const VulkanRenderingDevice &renderingDevice, SDL_Window &window, const WindowOptions &options):
-  window(window), windowOptions(options), renderingDevice(renderingDevice) {
+  VulkanSwapChain::VulkanSwapChain(
+    const VkInstance &instance,
+    const VulkanDevice &device,
+    SDL_Window &window,
+    const WindowOptions &options
+  ) : window(window), windowOptions(options), instance(instance), device(device) {
     createSurface();
     createSwapChain();
   }
@@ -16,20 +20,19 @@ namespace Core::Graphics {
     for (auto &imageView : swapChainImageViews)
       destroyImageView(imageView);
 
-    vkDestroySurfaceKHR(renderingDevice.getInstance(), surface, nullptr);
+    vkDestroySurfaceKHR(instance, surface, nullptr);
   }
 
   void VulkanSwapChain::createSurface() {
-    if (!SDL_Vulkan_CreateSurface(&window, renderingDevice.getInstance(), nullptr, &surface))
+    if (!SDL_Vulkan_CreateSurface(&window, instance, nullptr, &surface))
       throw std::runtime_error("Failed to create window surface: " + std::string(SDL_GetError()));
   }
 
   void VulkanSwapChain::createSwapChain() {
-    const VulkanDevice &vulkanDevice = *renderingDevice.getCurrentDevice();
     VkBool32 supportPresent = false;
     vkGetPhysicalDeviceSurfaceSupportKHR(
-      vulkanDevice.getPhysicalDevice(),
-      vulkanDevice.getGraphicsQueue().familyIndex,
+      device.getPhysicalDevice(),
+      device.getGraphicsQueue().familyIndex,
       surface,
       &supportPresent
     );
@@ -40,7 +43,7 @@ namespace Core::Graphics {
 
     VkSurfaceCapabilitiesKHR surfaceCapabilities;
     VULKAN_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-      vulkanDevice.getPhysicalDevice(), surface, &surfaceCapabilities
+      device.getPhysicalDevice(), surface, &surfaceCapabilities
     ));
 
     // Tries to get triple buffering by default
@@ -69,14 +72,14 @@ namespace Core::Graphics {
       .clipped = VK_TRUE,
     };
 
-    VULKAN_CHECK(vkCreateSwapchainKHR(vulkanDevice.getDevice(), &swapChainCreateInfo, nullptr, &swapChain));
+    VULKAN_CHECK(vkCreateSwapchainKHR(device.getDevice(), &swapChainCreateInfo, nullptr, &swapChain));
 
     std::uint32_t swapChainImageCount = 0;
-    VULKAN_CHECK(vkGetSwapchainImagesKHR(vulkanDevice.getDevice(), swapChain, &swapChainImageCount, nullptr));
+    VULKAN_CHECK(vkGetSwapchainImagesKHR(device.getDevice(), swapChain, &swapChainImageCount, nullptr));
     swapChainImages.resize(swapChainImageCount);
     swapChainImageViews.resize(swapChainImageCount);
 
-    VULKAN_CHECK(vkGetSwapchainImagesKHR(vulkanDevice.getDevice(), swapChain, &swapChainImageCount, swapChainImages.data()));
+    VULKAN_CHECK(vkGetSwapchainImagesKHR(device.getDevice(), swapChain, &swapChainImageCount, swapChainImages.data()));
 
     for (size_t imageIndex = 0; imageIndex < swapChainImageCount; imageIndex++) {
       createImageView(
@@ -93,10 +96,9 @@ namespace Core::Graphics {
   }
 
   VkSurfaceFormatKHR VulkanSwapChain::chooseSurfaceFormat() const {
-    const VulkanDevice &vulkanDevice = *renderingDevice.getCurrentDevice();
     std::uint32_t formatsCount = 0;
     VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(
-      vulkanDevice.getPhysicalDevice(), surface, &formatsCount, nullptr
+      device.getPhysicalDevice(), surface, &formatsCount, nullptr
     ));
 
     if (formatsCount == 0) {
@@ -106,7 +108,7 @@ namespace Core::Graphics {
 
     std::vector<VkSurfaceFormatKHR> formats(formatsCount);
     VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(
-      vulkanDevice.getPhysicalDevice(), surface, &formatsCount, formats.data()
+      device.getPhysicalDevice(), surface, &formatsCount, formats.data()
     ));
 
     VkSurfaceFormatKHR chosenFormat = formats[0];
@@ -120,15 +122,14 @@ namespace Core::Graphics {
   }
 
   VkPresentModeKHR VulkanSwapChain::choosePresentMode() const {
-    const VulkanDevice &vulkanDevice = *renderingDevice.getCurrentDevice();
     std::uint32_t presentModesCount = 0;
     vkGetPhysicalDeviceSurfacePresentModesKHR(
-      vulkanDevice.getPhysicalDevice(), surface, &presentModesCount, nullptr
+      device.getPhysicalDevice(), surface, &presentModesCount, nullptr
     );
 
     std::vector<VkPresentModeKHR> presentModes(presentModesCount);
     vkGetPhysicalDeviceSurfacePresentModesKHR(
-      vulkanDevice.getPhysicalDevice(), surface, &presentModesCount, presentModes.data()
+      device.getPhysicalDevice(), surface, &presentModesCount, presentModes.data()
     );
 
     // FIFO is guaranteed to be present
@@ -147,7 +148,6 @@ namespace Core::Graphics {
     std::uint32_t layerCount,
     std::uint32_t mipLevels
   ) const {
-    const VulkanDevice &vulkanDevice = *renderingDevice.getCurrentDevice();
     VkImageViewCreateInfo createInfo{
       .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .image = image,
@@ -169,13 +169,12 @@ namespace Core::Graphics {
     };
 
     VkImageView imageView;
-    VULKAN_CHECK(vkCreateImageView(vulkanDevice.getDevice(), &createInfo, nullptr, &imageView));
+    VULKAN_CHECK(vkCreateImageView(device.getDevice(), &createInfo, nullptr, &imageView));
 
     return imageView;
   }
 
   void VulkanSwapChain::destroyImageView(const VkImageView &imageView) const {
-    const VulkanDevice &vulkanDevice = *renderingDevice.getCurrentDevice();
-    vkDestroyImageView(vulkanDevice.getDevice(), imageView, nullptr);
+    vkDestroyImageView(device.getDevice(), imageView, nullptr);
   }
 }

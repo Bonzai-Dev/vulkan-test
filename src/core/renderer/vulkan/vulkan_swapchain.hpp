@@ -26,7 +26,12 @@ namespace Core::Graphics {
     };
 
     public:
-      VulkanSwapChain(const VulkanRenderingDevice &renderingDevice, SDL_Window &window, const WindowOptions &options);
+      VulkanSwapChain(
+        const VkInstance &instance,
+        const VulkanDevice &device,
+        SDL_Window &window,
+        const WindowOptions &options
+      );
 
       VulkanSwapChain(const VulkanSwapChain &other) = delete;
 
@@ -62,9 +67,10 @@ namespace Core::Graphics {
 
       VkPresentModeKHR choosePresentMode() const;
 
-      const VulkanRenderingDevice &renderingDevice;
+      const VkInstance &instance;
+      const VulkanDevice &device;
 
-      VkSurfaceKHR surface = VK_NULL_HANDLE;
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
       VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 
       std::vector<VkImage> swapChainImages;

@@ -8,7 +8,7 @@ namespace Core {
 
   class WindowManager {
     public:
-      explicit WindowManager(const Application &application, const Graphics::RenderingDevice &renderingDevice);
+      explicit WindowManager(const Application &application);
 
       ~WindowManager();
 
@@ -58,7 +58,7 @@ namespace Core {
       void pollInputs() const;
 
       const Application &application;
-      const Graphics::RenderingDevice &renderingDevice;
+      // const Graphics::RenderingDevice &renderingDevice;
 
       Graphics::DisplayInfo displayInfo;
       std::unordered_map<std::uint32_t, Graphics::Window> windows;

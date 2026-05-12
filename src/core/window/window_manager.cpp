@@ -4,15 +4,14 @@
 #include <core/events/application.hpp>
 #include <core/events/window.hpp>
 #include <core/application.hpp>
+#include <core/renderer/vulkan/vulkan_window.hpp>
 #include "window_manager.hpp"
-
-#include "core/renderer/vulkan/vulkan_window.hpp"
 
 using namespace Core::Events;
 
 namespace Core {
-  WindowManager::WindowManager(const Application &application, const Graphics::RenderingDevice &renderingDevice) :
-  application(application), renderingDevice(renderingDevice) {
+  WindowManager::WindowManager(const Application &application) :
+  application(application) {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
       LOG_CORE_CRITICAL("Failed to initialize SDL Video: {}", SDL_GetError());
       return;
@@ -57,17 +56,10 @@ namespace Core {
   }
 
   void WindowManager::createWindow(const Graphics::WindowOptions &options) {
-    std::uint64_t windowFlags = 0;
-
-    if (options.fullScreen)
-      windowFlags |= SDL_WINDOW_FULLSCREEN;
-    if (options.resizable)
-      windowFlags |= SDL_WINDOW_RESIZABLE;
-
     // switch (application.graphicsBackend) {
     //   case Graphics::Backend::Vulkan: {
-    //     windowFlags |= SDL_WINDOW_VULKAN;
-    //     Graphics::Window window = Graphics::Window(displayInfo, options, windowFlags);
+    //     // windowFlags |= SDL_WINDOW_VULKAN;
+    //     Graphics::Window window = Graphics::Window(displayInfo, options);
     //     windows.emplace(window.getId(), std::move(window));
     //     break;
     //   }
@@ -75,7 +67,6 @@ namespace Core {
     //     break;
     // }
 
-    // renderingDevice.createWindow();
   }
 
   void WindowManager::update() const {

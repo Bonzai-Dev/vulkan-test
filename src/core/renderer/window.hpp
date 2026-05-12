@@ -28,8 +28,7 @@ namespace Core::Graphics {
     public:
       explicit Window(
         const DisplayInfo &displayInfo,
-        const WindowOptions &windowOptions,
-        std::uint64_t windowFlags
+        const WindowOptions &windowOptions
       );
 
       WindowOptions options;
