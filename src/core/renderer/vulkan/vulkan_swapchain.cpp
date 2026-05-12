@@ -7,7 +7,7 @@
 
 namespace Core::Graphics {
   VulkanSwapChain::VulkanSwapChain(const VulkanRenderingDevice &renderingDevice, SDL_Window &window, const WindowOptions &options):
-  window(window), windowOptions(options) {
+  window(window), windowOptions(options), renderingDevice(renderingDevice) {
     createSurface();
     createSwapChain();
   }
@@ -16,16 +16,16 @@ namespace Core::Graphics {
     for (auto &imageView : swapChainImageViews)
       destroyImageView(imageView);
 
-    vkDestroySurfaceKHR(vulkanContext->getInstance(), surface, nullptr);
+    vkDestroySurfaceKHR(renderingDevice.getInstance(), surface, nullptr);
   }
 
   void VulkanSwapChain::createSurface() {
-    if (!SDL_Vulkan_CreateSurface(&window, vulkanContext->getInstance(), nullptr, &surface))
+    if (!SDL_Vulkan_CreateSurface(&window, renderingDevice.getInstance(), nullptr, &surface))
       throw std::runtime_error("Failed to create window surface: " + std::string(SDL_GetError()));
   }
 
   void VulkanSwapChain::createSwapChain() {
-    const VulkanDevice &vulkanDevice = *vulkanContext->getCurrentDevice();
+    const VulkanDevice &vulkanDevice = *renderingDevice.getCurrentDevice();
     VkBool32 supportPresent = false;
     vkGetPhysicalDeviceSurfaceSupportKHR(
       vulkanDevice.getPhysicalDevice(),
@@ -93,7 +93,7 @@ namespace Core::Graphics {
   }
 
   VkSurfaceFormatKHR VulkanSwapChain::chooseSurfaceFormat() const {
-    const VulkanDevice &vulkanDevice = *vulkanContext->getCurrentDevice();
+    const VulkanDevice &vulkanDevice = *renderingDevice.getCurrentDevice();
     std::uint32_t formatsCount = 0;
     VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(
       vulkanDevice.getPhysicalDevice(), surface, &formatsCount, nullptr
@@ -120,7 +120,7 @@ namespace Core::Graphics {
   }
 
   VkPresentModeKHR VulkanSwapChain::choosePresentMode() const {
-    const VulkanDevice &vulkanDevice = *vulkanContext->getCurrentDevice();
+    const VulkanDevice &vulkanDevice = *renderingDevice.getCurrentDevice();
     std::uint32_t presentModesCount = 0;
     vkGetPhysicalDeviceSurfacePresentModesKHR(
       vulkanDevice.getPhysicalDevice(), surface, &presentModesCount, nullptr
@@ -147,7 +147,7 @@ namespace Core::Graphics {
     std::uint32_t layerCount,
     std::uint32_t mipLevels
   ) const {
-    const VulkanDevice &vulkanDevice = *vulkanContext->getCurrentDevice();
+    const VulkanDevice &vulkanDevice = *renderingDevice.getCurrentDevice();
     VkImageViewCreateInfo createInfo{
       .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .image = image,
@@ -175,7 +175,7 @@ namespace Core::Graphics {
   }
 
   void VulkanSwapChain::destroyImageView(const VkImageView &imageView) const {
-    const VulkanDevice &vulkanDevice = *vulkanContext->getCurrentDevice();
+    const VulkanDevice &vulkanDevice = *renderingDevice.getCurrentDevice();
     vkDestroyImageView(vulkanDevice.getDevice(), imageView, nullptr);
   }
 }

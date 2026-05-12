@@ -55,6 +55,7 @@ namespace Core::Graphics {
       void createSwapChain();
 
       SDL_Window &window;
+
       const WindowOptions &windowOptions;
 
       VkSurfaceFormatKHR chooseSurfaceFormat() const;
