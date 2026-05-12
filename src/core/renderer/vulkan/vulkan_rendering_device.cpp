@@ -8,7 +8,7 @@
 namespace Core::Graphics {
   VulkanRenderingDevice::VulkanRenderingDevice(const char *appName) {
     if (volkInitialize() != VK_SUCCESS) {
-      LOG_CORE_CRITICAL("Failed to load Vulkan. Vulkan drivers may be missing on your system.");
+      LOG_CORE_CRITICAL("Failed to load Vulkan. Vulkan drivers may be missing on your system");
       return;
     }
 
@@ -17,11 +17,11 @@ namespace Core::Graphics {
     currentDevice = chooseDevice();
     currentDevice->createLogicalDevice();
 
-    LOG_CORE_INFO("Rendering using {}.", currentDevice->getName());
+    LOG_CORE_INFO("Rendering using {}", currentDevice->getName());
 
     const std::uint32_t version = currentDevice->getProperties().apiVersion;
     LOG_CORE_DEBUG(
-      "{} supports Vulkan up to {}.{}.{}.",
+      "{} supports Vulkan up to {}.{}.{}",
       currentDevice->getName(),
       VK_VERSION_MAJOR(version), VK_VERSION_MINOR(version),
       VK_VERSION_PATCH(version)
@@ -93,7 +93,7 @@ namespace Core::Graphics {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
     if (deviceCount == 0) {
-      LOG_CORE_CRITICAL("Cannot find any GPUs with Vulkan support.");
+      LOG_CORE_CRITICAL("Cannot find any GPUs with Vulkan support");
       return devices;
     }
     physicalDevices.resize(deviceCount);
@@ -107,7 +107,7 @@ namespace Core::Graphics {
     }
 
     if (devices.empty()) {
-      LOG_CORE_CRITICAL("No suitable Vulkan devices found.");
+      LOG_CORE_CRITICAL("No suitable Vulkan devices found");
       return devices;
     }
 
@@ -137,19 +137,19 @@ namespace Core::Graphics {
   ) {
     switch (messageSeverity) {
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-        LOG_CORE_TRACE("Vulkan {}.", callbackData->pMessage);
+        LOG_CORE_TRACE("Vulkan {}", callbackData->pMessage);
         break;
 
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-        LOG_CORE_INFO("Vulkan {}.", callbackData->pMessage);
+        LOG_CORE_INFO("Vulkan {}", callbackData->pMessage);
         break;
 
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-        LOG_CORE_WARNING("Vulkan {}.", callbackData->pMessage);
+        LOG_CORE_WARNING("Vulkan {}", callbackData->pMessage);
         break;
 
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-        LOG_CORE_ERROR("Vulkan {}.", callbackData->pMessage);
+        LOG_CORE_ERROR("Vulkan {}", callbackData->pMessage);
         break;
 
       default:
@@ -177,17 +177,14 @@ namespace Core::Graphics {
         validationLayersSupported = true;
         instanceLayers.push_back(validationLayer);
       }
-      LOG_CORE_DEBUG("Found instance layer \"{}\".", layerName);
+      LOG_CORE_DEBUG("Found instance layer \"{}\"", layerName);
     }
 
     if constexpr (Application::debugEnabled) {
       if (std::ranges::find(instanceLayers, validationLayer) != instanceLayers.end())
-        LOG_CORE_INFO("Validation layer \"{}\" has been found.", validationLayer);
+        LOG_CORE_INFO("Validation layer \"{}\" has been found", validationLayer);
       else
-        LOG_CORE_WARNING(""
-                       "Validation layers for Vulkan has been requested while in debug mode, but are not available.",
-                       validationLayer
-      );
+        LOG_CORE_WARNING("Validation layers for Vulkan has been requested while in debug mode, but are not available");
     }
 
     return instanceLayers;

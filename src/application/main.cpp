@@ -5,7 +5,7 @@ int main() {
   const Core::Application application("Vulkan Template");
   application.createWindow({
     .mouseLocked = false,
-    .fullScreen = false,
+    .fullScreen = true,
     .vsync = true,
     .resizable = true,
     .windowName = "Game"

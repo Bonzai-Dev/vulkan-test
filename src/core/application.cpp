@@ -1,6 +1,7 @@
 #include <SDL3/SDL.h>
 #include <core/logger.hpp>
 #include "events/application.hpp"
+#include "renderer/vulkan/vulkan_rendering_device.hpp"
 #include "application.hpp"
 
 namespace Core {
@@ -15,11 +16,11 @@ namespace Core {
         break;
 
       case Graphics::Backend::None:
-        LOG_CORE_CRITICAL("No graphics backend selected. Select a backend to render graphics.");
+        LOG_CORE_CRITICAL("No graphics backend selected. Select a backend to render graphics");
         break;
 
       default:
-        LOG_CORE_CRITICAL("Unsupported graphics backend selected.");
+        LOG_CORE_CRITICAL("Unsupported graphics backend selected");
         break;
     }
   }

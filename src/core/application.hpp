@@ -2,6 +2,7 @@
 #include <memory>
 #include <core/logger.hpp>
 #include <core/events/application.hpp>
+#include "renderer/rendering_device.hpp"
 #include "renderer/window.hpp"
 #include "window/window_manager.hpp"
 #include "window/layer.hpp"

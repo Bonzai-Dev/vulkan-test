@@ -58,6 +58,7 @@ namespace Core {
       void pollInputs() const;
 
       const Application &application;
+      Graphics::DisplayInfo displayInfo;
       std::unordered_map<std::uint32_t, Graphics::Window> windows;
 
       int displayCount = 0;

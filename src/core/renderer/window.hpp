@@ -1,10 +1,8 @@
 #pragma once
-
 #include <cstdint>
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_mouse.h>
 #include <core/events/window.hpp>
-#include <core/renderer/vulkan/vulkan_swapchain.hpp>
 
 namespace Core::Graphics {
   struct WindowOptions {
@@ -19,9 +17,17 @@ namespace Core::Graphics {
     const char *windowName = "Window";
   };
 
+  struct DisplayInfo {
+    std::uint32_t displayId;
+
+    std::uint32_t width;
+    std::uint32_t height;
+  };
+
   class Window {
     public:
       explicit Window(
+        const DisplayInfo &displayInfo,
         const WindowOptions &windowOptions,
         std::uint64_t windowFlags
       );
@@ -34,7 +40,7 @@ namespace Core::Graphics {
 
       Window(Window &&other) noexcept;
 
-      Window &operator=(Window &&other) noexcept;
+      Window &operator=(Window &&other) = delete;
 
       ~Window();
 
@@ -69,13 +75,15 @@ namespace Core::Graphics {
 
       void unlockMouse() const { SDL_SetWindowRelativeMouseMode(window, false); }
 
-    protected:
-      std::uint32_t id = 0;
+      std::uint32_t getId() const { return SDL_GetWindowID(window); }
 
+    protected:
       bool minimized = false;
       bool shown = false;
       bool mouseFocused = false; // Whether if the mouse is in the window or not
       bool keyboardFocused = false;
+
+      const DisplayInfo &displayInfo;
 
       SDL_Window *window = nullptr;
       std::uint64_t windowFlags = 0;

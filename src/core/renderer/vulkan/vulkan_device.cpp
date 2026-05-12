@@ -188,7 +188,7 @@ namespace Core::Graphics {
     vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
     for (size_t extensionIndex = 0; extensionIndex < extensionCount; extensionIndex++) {
       const std::string extensionName = availableExtensions[extensionIndex].extensionName;
-      LOG_CORE_TRACE("Found device extension \"{}\".", extensionName);
+      LOG_CORE_TRACE("Found device extension \"{}\"", extensionName);
 
       if (extensionName == VK_KHR_MAINTENANCE2_EXTENSION_NAME) {
         extensions.push_back(VK_KHR_MAINTENANCE2_EXTENSION_NAME);
@@ -241,7 +241,7 @@ namespace Core::Graphics {
       }
     }
 
-    LOG_CORE_CRITICAL("GPU does not expose Graphics queue. Cannot be used for rendering.");
+    LOG_CORE_CRITICAL("GPU does not expose Graphics queue. Cannot be used for rendering");
 
     return {VulkanQueue::Type::Graphics, 0, 0};
   }

@@ -6,8 +6,8 @@
 #include "vulkan_swapchain.hpp"
 
 namespace Core::Graphics {
-  VulkanSwapChain::VulkanSwapChain(SDL_Window &window):
-  window(window) {
+  VulkanSwapChain::VulkanSwapChain(const VulkanRenderingDevice &renderingDevice, SDL_Window &window, const WindowOptions &options):
+  window(window), windowOptions(options) {
     createSurface();
     createSwapChain();
   }
@@ -34,7 +34,7 @@ namespace Core::Graphics {
       &supportPresent
     );
     if (!supportPresent) {
-      LOG_CORE_CRITICAL("Surface is not supported by the graphics queue.");
+      LOG_CORE_CRITICAL("Surface is not supported by the graphics queue");
       return;
     }
 
@@ -89,7 +89,7 @@ namespace Core::Graphics {
       );
     }
 
-    LOG_CORE_DEBUG("Swap chain contains {} image(s).", swapChainImageCount);
+    LOG_CORE_DEBUG("Swap chain contains {} image(s)", swapChainImageCount);
   }
 
   VkSurfaceFormatKHR VulkanSwapChain::chooseSurfaceFormat() const {
@@ -100,7 +100,7 @@ namespace Core::Graphics {
     ));
 
     if (formatsCount == 0) {
-      LOG_CORE_CRITICAL("No surface formats found.");
+      LOG_CORE_CRITICAL("No surface formats found");
       return {};
     }
 
