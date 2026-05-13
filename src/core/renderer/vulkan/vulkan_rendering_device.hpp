@@ -8,7 +8,7 @@
 namespace Core::Graphics {
   class VulkanRenderingDevice : public RenderingDevice {
     public:
-      explicit VulkanRenderingDevice(const char *appName);
+      explicit VulkanRenderingDevice(const char *appName, const DisplayInfo &displayInfo);
 
       ~VulkanRenderingDevice() override;
 
@@ -34,7 +34,9 @@ namespace Core::Graphics {
 
       int rateDevice(const VulkanDevice &device);
 
-      void createWindow() override;
+      void createWindow(const WindowOptions &options) override;
+
+      void render() override;
 
     private:
       void createInstance(

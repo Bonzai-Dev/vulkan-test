@@ -1,6 +1,5 @@
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_mouse.h>
-#include <core/window/window_manager.hpp>
 #include <core/events/window.hpp>
 #include "window.hpp"
 
@@ -9,14 +8,11 @@ namespace Core::Graphics {
     const DisplayInfo &displayInfo,
     const WindowOptions &windowOptions
   ) : options(windowOptions), displayInfo(displayInfo) {
-    std::uint32_t width = windowOptions.width;
-    std::uint32_t height = windowOptions.height;
+    std::uint32_t width = options.width;
+    std::uint32_t height = options.height;
 
-    if (options.fullScreen) {
+    if (options.fullScreen)
       windowFlags |= SDL_WINDOW_FULLSCREEN;
-      width = displayInfo.width;
-      height = displayInfo.height;
-    }
 
     if (options.resizable)
       windowFlags |= SDL_WINDOW_RESIZABLE;
@@ -37,7 +33,8 @@ namespace Core::Graphics {
     SDL_SetWindowRelativeMouseMode(window, options.mouseLocked);
   }
 
-  Window::Window(Window &&other) noexcept : mouseFocused(other.mouseFocused),
+  Window::Window(Window &&other) noexcept :
+    mouseFocused(other.mouseFocused),
     keyboardFocused(other.keyboardFocused),
     displayInfo(other.displayInfo),
     window(other.window),
