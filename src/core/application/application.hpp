@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
-#include <core/logger.hpp>
-#include <core/events/application.hpp>
+#include <core/application/logger.hpp>
+#include <core/events/application_events.hpp>
 #include <core/renderer/rendering_device.hpp>
 #include <core/renderer/window.hpp>
 #include "layer.hpp"

@@ -10,7 +10,7 @@ namespace Core::Graphics {
     public:
       explicit VulkanRenderingDevice(const char *appName, const DisplayInfo &displayInfo);
 
-      ~VulkanRenderingDevice() override;
+      ~VulkanRenderingDevice() override = default;
 
       VulkanRenderingDevice(const VulkanRenderingDevice &other) = delete;
 
@@ -20,56 +20,41 @@ namespace Core::Graphics {
 
       VulkanRenderingDevice &operator=(VulkanRenderingDevice &&other) noexcept = delete;
 
-      static std::vector<const char*> getExtensions();
+      const std::vector<const char*> &getExtensions();
 
-      static bool validationLayersEnabled() { return validationLayersSupported; }
+      bool validationLayersEnabled() const { return validationLayersSupported; }
 
       VkInstance getInstance() const { return instance; }
 
       const VulkanDevice *getCurrentDevice() const { return currentDevice; }
 
-      std::vector<VulkanDevice> &getDevices() const;
+      const std::vector<const char*> &getInstanceLayers();
 
-      std::vector<const char*> getInstanceLayers();
-
-      int rateDevice(const VulkanDevice &device);
+      int rateDevice(const VulkanDevice *device);
 
       void createWindow(const WindowOptions &options) override;
 
       void render() override;
 
+      static VkFormat convertPixelFormat(PixelFormat format);
+
+      static std::string vulkanResultToString(VkResult result);
+
     private:
-      void createInstance(
-        const char *appName,
-        const std::vector<const char*> &extensions,
-        const std::vector<const char*> &layers
-      );
+      bool validationLayersSupported = false;
 
-      VulkanDevice *chooseDevice();
-
-      static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT *callbackData,
-        void *userData
-      );
-
-      static inline bool validationLayersSupported;
-
+      std::vector<std::unique_ptr<VulkanDevice>> devices;
+      std::map<int, VulkanDevice*> deviceRankings;
+      VulkanDevice *currentDevice;
       VkInstance instance = VK_NULL_HANDLE;
-      VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
-
-      VulkanDevice *currentDevice = nullptr;
   };
-
-  std::string vulkanResultToString(VkResult result);
 
   #define VULKAN_CHECK(vulkanCall) { \
     VkResult result = vulkanCall; \
     if (result != VK_SUCCESS) { \
       std::string vkfunc = #vulkanCall; \
       vkfunc = vkfunc.substr(0, vkfunc.find('(')); \
-      throw std::runtime_error("Vulkan error: " + vkfunc + " failed with " + vulkanResultToString(result)); \
+      throw std::runtime_error("Vulkan error: " + vkfunc + " failed with " + VulkanRenderingDevice::vulkanResultToString(result)); \
     } \
   }
 }

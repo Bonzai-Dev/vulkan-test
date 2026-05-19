@@ -1,63 +1,31 @@
-#include <core/logger.hpp>
+#include <core/application/logger.hpp>
 #include "vulkan_queue.hpp"
 #include "vulkan_rendering_device.hpp"
 #include "vulkan_device.hpp"
 #include "vk_mem_alloc.h"
 
 namespace Core::Graphics {
-  VulkanDevice::VulkanDevice(VkInstance instance): instance(instance) {
-  }
-
-  VulkanDevice::VulkanDevice(VulkanDevice &&other) noexcept : physicalDevice(other.physicalDevice),
-    logicalDevice(other.logicalDevice),
-    deviceProperties(std::move(other.deviceProperties)),
-    deviceMemoryProperties(std::move(other.deviceMemoryProperties)),
-    deviceFeatures(std::move(other.deviceFeatures)),
-    supportedStages(other.supportedStages),
-    queueFamilyProperties(std::move(other.queueFamilyProperties)),
-    presentQueue(other.presentQueue),
-    graphicsQueue(std::move(other.graphicsQueue)),
-    computeQueues(std::move(other.computeQueues)),
-    transferQueues(std::move(other.transferQueues)),
-    memoryAllocator(other.memoryAllocator),
-    instance(other.instance) {
-    other.physicalDevice = VK_NULL_HANDLE;
-    other.logicalDevice = VK_NULL_HANDLE;
-    other.presentQueue = VK_NULL_HANDLE;
-  }
-
-  VulkanDevice &VulkanDevice::operator=(VulkanDevice &&other) noexcept {
-    if (this == &other)
-      return *this;
-
-    physicalDevice = other.physicalDevice;
-    logicalDevice = other.logicalDevice;
-    deviceProperties = std::move(other.deviceProperties);
-    deviceMemoryProperties = std::move(other.deviceMemoryProperties);
-    deviceFeatures = std::move(other.deviceFeatures);
-    supportedStages = other.supportedStages;
-    queueFamilyProperties = std::move(other.queueFamilyProperties);
-    graphicsQueue = std::move(other.graphicsQueue);
-    computeQueues = std::move(other.computeQueues);
-    transferQueues = std::move(other.transferQueues);
-    presentQueue = other.presentQueue;
-    instance = other.instance;
-    memoryAllocator = other.memoryAllocator;
-
-    other.physicalDevice = VK_NULL_HANDLE;
-    other.logicalDevice = VK_NULL_HANDLE;
-    other.presentQueue = VK_NULL_HANDLE;
-
-    return *this;
+  VulkanDevice::VulkanDevice(const VulkanRenderingDevice &renderingDevice): renderingDevice(renderingDevice) {
   }
 
   VulkanDevice::~VulkanDevice() {
-    if (logicalDevice) {
+    if (logicalDevice != VK_NULL_HANDLE) {
+      vkDeviceWaitIdle(logicalDevice);
+      for (auto &graphicsQueue: graphicsQueues)
+        graphicsQueue.destroy();
+      for (auto &computeQueue: computeQueues)
+        computeQueue.destroy();
+      for (auto &transferQueue: transferQueues)
+        transferQueue.destroy();
+
+      vmaDestroyAllocator(memoryAllocator);
       vkDestroyDevice(logicalDevice, nullptr);
       logicalDevice = VK_NULL_HANDLE;
       physicalDevice = VK_NULL_HANDLE;
-      vmaDestroyAllocator(memoryAllocator);
     }
+
+    if (debugMessenger)
+      vkDestroyDebugUtilsMessengerEXT(renderingDevice.getInstance(), debugMessenger, nullptr);
   }
 
   void VulkanDevice::createPhysicalDevice(VkPhysicalDevice physicalDevice) {
@@ -79,16 +47,18 @@ namespace Core::Graphics {
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilyProperties.data());
   }
 
-  void VulkanDevice::createLogicalDevice() {
+  void VulkanDevice::createLogicalDevice(VkDebugUtilsMessengerEXT debugMessenger) {
+    this->debugMessenger = debugMessenger;
+
     const std::uint32_t queueFamilyCount = queueFamilyProperties.size();
     std::vector<VkDeviceQueueCreateInfo> queuesCreateInfo;
 
     // Track the number of queues for each family. The index is the same as the queue family index.
     std::vector<std::uint32_t> usedQueuesCount(queueFamilyCount, 0);
 
-    graphicsQueue = findGraphicsQueue(usedQueuesCount);
-    computeQueues = findComputeQueue(usedQueuesCount);
-    transferQueues = findTransferQueues(usedQueuesCount);
+    findGraphicsQueue(usedQueuesCount);
+    findComputeQueue(usedQueuesCount);
+    findTransferQueues(usedQueuesCount);
 
     for (size_t queueIndex = 0; queueIndex < queueFamilyCount; queueIndex++) {
       const VkDeviceQueueCreateInfo deviceQueueCreateInfo {
@@ -150,27 +120,26 @@ namespace Core::Graphics {
       .physicalDevice = physicalDevice,
       .device = logicalDevice,
       .pVulkanFunctions = &vulkanFunctions,
-      .instance = instance
+      .instance = renderingDevice.getInstance()
     };
     vmaCreateAllocator(&allocatorCreateInfo, &memoryAllocator);
   }
 
   void VulkanDevice::initializeQueues() {
-    const std::uint32_t frameBufferCount = 0;
-    VkQueue graphicsQueue = VK_NULL_HANDLE;
-    vkGetDeviceQueue(
-      logicalDevice, this->graphicsQueue.familyIndex, this->graphicsQueue.queueIndex, &graphicsQueue
-    );
-    this->graphicsQueue.initialize(logicalDevice, graphicsQueue, frameBufferCount);
+    const std::uint32_t frameBufferCount = 4;
+    for (auto &graphicsQueue: graphicsQueues) {
+      vkGetDeviceQueue(logicalDevice, graphicsQueue.familyIndex, graphicsQueue.queueIndex, &graphicsQueue.queue);
+      graphicsQueue.initialize(graphicsQueue.queue, frameBufferCount);
+    }
 
     for (auto &computeQueue: computeQueues) {
       vkGetDeviceQueue(logicalDevice, computeQueue.familyIndex, computeQueue.queueIndex, &computeQueue.queue);
-      computeQueue.initialize(logicalDevice, computeQueue.queue, frameBufferCount);
+      computeQueue.initialize(computeQueue.queue, frameBufferCount);
     }
 
     for (auto &transferQueue: transferQueues) {
       vkGetDeviceQueue(logicalDevice, transferQueue.familyIndex, transferQueue.queueIndex, &transferQueue.queue);
-      transferQueue.initialize(logicalDevice, transferQueue.queue, frameBufferCount);
+      transferQueue.initialize(transferQueue.queue, frameBufferCount);
     }
   }
 
@@ -210,7 +179,7 @@ namespace Core::Graphics {
       }
 #endif
 
-      if (VulkanRenderingDevice::validationLayersEnabled())
+      if (renderingDevice.validationLayersEnabled())
         extensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
 
       extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
@@ -220,35 +189,33 @@ namespace Core::Graphics {
     return extensions;
   }
 
-  VulkanQueue VulkanDevice::findGraphicsQueue(std::vector<std::uint32_t> &usedQueuesCount) const {
+  void VulkanDevice::findGraphicsQueue(std::vector<std::uint32_t> &usedQueuesCount) {
     const size_t familyCount = queueFamilyProperties.size();
     for (size_t familyIndex = 0; familyIndex < familyCount; familyIndex++) {
       if (queueFamilyProperties[familyIndex].queueFlags & VK_QUEUE_GRAPHICS_BIT &&
           usedQueuesCount[familyIndex] < queueFamilyProperties[familyIndex].queueCount) {
-        usedQueuesCount[familyIndex]++;
-
         LOG_CORE_TRACE(
           "Found graphics queue in family {} with {} queues.",
           familyIndex,
           queueFamilyProperties[familyIndex].queueCount
         );
 
-        return {
-          VulkanQueue::Type::Graphics,
-          static_cast<std::uint32_t>(familyIndex),
-          usedQueuesCount[familyIndex]
-        };
+        graphicsQueues.emplace_back(*this);
+        VulkanQueue &queue = graphicsQueues.back();
+        queue.type = VulkanQueue::Type::Transfer;
+        queue.familyIndex = static_cast<std::uint32_t>(familyIndex);
+        queue.queueIndex = usedQueuesCount[familyIndex];
+
+        usedQueuesCount[familyIndex]++;
       }
     }
 
-    LOG_CORE_CRITICAL("GPU does not expose Graphics queue. Cannot be used for rendering");
-
-    return {VulkanQueue::Type::Graphics, 0, 0};
+    if (graphicsQueues.empty())
+      LOG_CORE_CRITICAL("GPU does not expose Graphics queue. Cannot be used for rendering");
   }
 
-  std::vector<VulkanQueue> VulkanDevice::findComputeQueue(std::vector<std::uint32_t> &usedQueuesCount) const {
+  void VulkanDevice::findComputeQueue(std::vector<std::uint32_t> &usedQueuesCount) {
     const size_t familyCount = queueFamilyProperties.size();
-    std::vector<VulkanQueue> queues;
     for (size_t familyIndex = 0; familyIndex < familyCount; familyIndex++) {
       const bool isCompute = queueFamilyProperties[familyIndex].queueFlags & VK_QUEUE_COMPUTE_BIT;
       if (isCompute && usedQueuesCount[familyIndex] < queueFamilyProperties[familyIndex].queueCount) {
@@ -258,21 +225,19 @@ namespace Core::Graphics {
           queueFamilyProperties[familyIndex].queueCount
         );
 
+        computeQueues.emplace_back(*this);
+        VulkanQueue &queue = computeQueues.back();
+        queue.type = VulkanQueue::Type::Compute;
+        queue.familyIndex = static_cast<std::uint32_t>(familyIndex);
+        queue.queueIndex = usedQueuesCount[familyIndex];
+
         usedQueuesCount[familyIndex]++;
-        queues.emplace_back(
-          VulkanQueue::Type::Compute,
-          static_cast<std::uint32_t>(familyIndex),
-          usedQueuesCount[familyIndex]
-        );
       }
     }
-
-    return queues;
   }
 
-  std::vector<VulkanQueue> VulkanDevice::findTransferQueues(std::vector<std::uint32_t> &usedQueueCount) const {
+  void VulkanDevice::findTransferQueues(std::vector<std::uint32_t> &usedQueueCount) {
     const size_t familyCount = queueFamilyProperties.size();
-    std::vector<VulkanQueue> queues;
     for (size_t familyIndex = 0; familyIndex < familyCount; familyIndex++) {
       const bool isTransfer = queueFamilyProperties[familyIndex].queueFlags & VK_QUEUE_TRANSFER_BIT;
       const bool isGraphicsOrCompute = queueFamilyProperties[familyIndex].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
@@ -283,15 +248,44 @@ namespace Core::Graphics {
           queueFamilyProperties[familyIndex].queueCount
         );
 
+        transferQueues.emplace_back(*this);
+        VulkanQueue &queue = transferQueues.back();
+        queue.type = VulkanQueue::Type::Transfer;
+        queue.familyIndex = static_cast<std::uint32_t>(familyIndex);
+        queue.queueIndex = usedQueueCount[familyIndex];
+
         usedQueueCount[familyIndex]++;
-        queues.emplace_back(
-          VulkanQueue::Type::Transfer,
-          static_cast<std::uint32_t>(familyIndex),
-          usedQueueCount[familyIndex]
-        );
       }
     }
+  }
 
-    return queues;
+  VkBool32 VulkanDevice::debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT *callbackData,
+    void *userData
+  ) {
+    switch (messageSeverity) {
+      case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+        LOG_CORE_TRACE("Vulkan {}", callbackData->pMessage);
+        break;
+
+      case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+        LOG_CORE_INFO("Vulkan {}", callbackData->pMessage);
+        break;
+
+      case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+        LOG_CORE_WARNING("Vulkan {}", callbackData->pMessage);
+        break;
+
+      case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+        LOG_CORE_ERROR("Vulkan {}", callbackData->pMessage);
+        break;
+
+      default:
+        break;
+    }
+
+    return VK_FALSE;
   }
 }

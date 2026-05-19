@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_mouse.h>
-#include <core/events/window.hpp>
+#include <core/events/window_events.hpp>
 
 namespace Core::Graphics {
   struct WindowOptions {
@@ -41,9 +41,9 @@ namespace Core::Graphics {
 
       Window &operator=(Window &&other) = delete;
 
-      ~Window();
+      virtual ~Window();
 
-      void render() const;
+      virtual void render() const {}
 
       void show() { shown = true; }
 

@@ -1,6 +1,6 @@
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_mouse.h>
-#include <core/events/window.hpp>
+#include <core/events/window_events.hpp>
 #include "window.hpp"
 
 namespace Core::Graphics {
@@ -44,9 +44,5 @@ namespace Core::Graphics {
 
   Window::~Window() {
     SDL_DestroyWindow(window);
-  }
-
-  void Window::render() const {
-    // TODO: rendering logic here
   }
 }

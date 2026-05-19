@@ -1,5 +1,6 @@
-#include "volk.h"
 #include <SDL3/SDL_vulkan.h>
+#include <core/application/logger.hpp>
+#include "volk.h"
 #include "vulkan_rendering_device.hpp"
 #include "vulkan_window.hpp"
 #include "vulkan_device.hpp"
@@ -11,38 +12,46 @@ namespace Core::Graphics {
     const DisplayInfo &displayInfo,
     const WindowOptions &windowOptions
   ) : Window(displayInfo, windowOptions), instance(instance), device(device) {
-    createSurface();
+    if (!SDL_Vulkan_CreateSurface(window, instance, nullptr, &surface))
+      LOG_CORE_ERROR("Failed to create window surface: {}", std::string(SDL_GetError()));
+
     createSwapChain();
   }
 
   VulkanWindow::~VulkanWindow() {
-    for (auto &imageView : swapChainImageViews)
-      destroyImageView(imageView);
+    vkDestroySwapchainKHR(device.logicalDevice, swapChain, nullptr);
+    for (const auto &imageView : swapChainImageViews)
+      vkDestroyImageView(device.logicalDevice, imageView, nullptr);
 
     vkDestroySurfaceKHR(instance, surface, nullptr);
   }
-  
-  void VulkanWindow::createSurface() {
-    if (!SDL_Vulkan_CreateSurface(window, instance, nullptr, &surface))
-      LOG_CORE_ERROR("Failed to create window surface: {}", std::string(SDL_GetError()));
+
+  void VulkanWindow::render() {
+    currentSemaphoreIndex = (currentSemaphoreIndex + 1) % imageReadySemaphores.size();
+    VkSemaphore semaphore = imageReadySemaphores[currentSemaphoreIndex];
+
+    std::uint32_t imageIndex = 0;
+    VkResult result = vkAcquireNextImageKHR(device.logicalDevice, swapChain, UINT64_MAX, semaphore, VK_NULL_HANDLE, &imageIndex);
+    if(imageFences[imageIndex])
+      VULKAN_CHECK(vkWaitForFences(device.logicalDevice, 1, &imageFences[imageIndex], VK_TRUE, UINT64_MAX));
   }
 
   void VulkanWindow::createSwapChain() {
     VkSurfaceCapabilitiesKHR surfaceCapabilities;
     VULKAN_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-      device.getPhysicalDevice(), surface, &surfaceCapabilities
+      device.physicalDevice, surface, &surfaceCapabilities
     ));
 
-    VkBool32 supportPresent = false;
+    VkBool32 supported = false;
     VULKAN_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(
-      device.getPhysicalDevice(),
-      device.getGraphicsQueue().familyIndex,
+      device.physicalDevice,
+      device.getGraphicsQueues()[0].familyIndex,
       surface,
-      &supportPresent
+      &supported
     ));
 
-    if (!supportPresent) {
-      LOG_CORE_CRITICAL("Surface is not supported by the graphics queue");
+    if (!supported) {
+      LOG_CORE_CRITICAL("KHR Surface is unsupported");
       return;
     }
 
@@ -53,12 +62,12 @@ namespace Core::Graphics {
       minImageCount = std::min(minImageCount, surfaceCapabilities.maxImageCount);
 
     const VkPresentModeKHR presentMode = choosePresentMode();
-    const VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat();
+    const VkFormat surfaceFormat = VulkanRenderingDevice::convertPixelFormat(chooseSurfaceFormat());
     const VkSwapchainCreateInfoKHR swapChainCreateInfo{
       .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       .surface = surface,
       .minImageCount = minImageCount,
-      .imageFormat = surfaceFormat.format,
+      .imageFormat = surfaceFormat,
       .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
       .imageExtent = surfaceCapabilities.currentExtent,
       .imageArrayLayers = 1,
@@ -72,33 +81,34 @@ namespace Core::Graphics {
       .clipped = VK_TRUE,
     };
 
-    VULKAN_CHECK(vkCreateSwapchainKHR(device.getDevice(), &swapChainCreateInfo, nullptr, &swapChain));
+    VULKAN_CHECK(vkCreateSwapchainKHR(device.logicalDevice, &swapChainCreateInfo, nullptr, &swapChain));
 
-    std::uint32_t swapChainImageCount = 0;
-    VULKAN_CHECK(vkGetSwapchainImagesKHR(device.getDevice(), swapChain, &swapChainImageCount, nullptr));
+    VULKAN_CHECK(vkGetSwapchainImagesKHR(device.logicalDevice, swapChain, &swapChainImageCount, nullptr));
     swapChainImages.resize(swapChainImageCount);
     swapChainImageViews.resize(swapChainImageCount);
+    renderFinishedSemaphores.resize(swapChainImageCount);
+    imageReadySemaphores.resize(swapChainImageCount);
+    imageFences.resize(swapChainImageCount);
 
-    VULKAN_CHECK(vkGetSwapchainImagesKHR(device.getDevice(), swapChain, &swapChainImageCount, swapChainImages.data()));
+    VULKAN_CHECK(vkGetSwapchainImagesKHR(device.logicalDevice, swapChain, &swapChainImageCount, swapChainImages.data()));
 
+    VkSemaphoreCreateInfo semaphoreCreateInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
     for (size_t imageIndex = 0; imageIndex < swapChainImageCount; imageIndex++) {
-      createImageView(
-        swapChainImages[imageIndex],
-        surfaceFormat.format,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        VK_IMAGE_VIEW_TYPE_2D,
-        1,
-        1
+      VULKAN_CHECK(
+        vkCreateSemaphore(device.logicalDevice, &semaphoreCreateInfo, nullptr, &imageReadySemaphores[imageIndex])
+      );
+      VULKAN_CHECK(
+        vkCreateSemaphore(device.logicalDevice, &semaphoreCreateInfo, nullptr, &renderFinishedSemaphores[imageIndex])
       );
     }
 
     LOG_CORE_DEBUG("Swap chain contains {} image(s)", swapChainImageCount);
   }
 
-  VkSurfaceFormatKHR VulkanWindow::chooseSurfaceFormat() const {
+  PixelFormat VulkanWindow::chooseSurfaceFormat() const {
     std::uint32_t formatsCount = 0;
     VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(
-      device.getPhysicalDevice(), surface, &formatsCount, nullptr
+      device.physicalDevice, surface, &formatsCount, nullptr
     ));
 
     if (formatsCount == 0) {
@@ -108,14 +118,21 @@ namespace Core::Graphics {
 
     std::vector<VkSurfaceFormatKHR> formats(formatsCount);
     VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(
-      device.getPhysicalDevice(), surface, &formatsCount, formats.data()
+      device.physicalDevice, surface, &formatsCount, formats.data()
     ));
 
-    VkSurfaceFormatKHR chosenFormat = formats[0];
-    for (size_t formatIndex = 0; formatIndex < formatsCount; formatIndex++) {
-      const auto &[format, colorSpace] = formats[formatIndex];
-      if (format == VK_FORMAT_B8G8R8A8_SRGB && colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-        return formats[formatIndex];
+    PixelFormat chosenFormat = PixelFormat::Unknown;
+    for(size_t formatIndex = 0; formatIndex < formatsCount && chosenFormat == PixelFormat::Unknown; formatIndex++) {
+      switch(formats[formatIndex].format) {
+        case VK_FORMAT_R8G8B8A8_UNORM:
+          chosenFormat = PixelFormat::R8G8B8A8;
+          break;
+        case VK_FORMAT_B8G8R8A8_UNORM:
+          chosenFormat = PixelFormat::B8G8R8A8;
+          break;
+        default:
+          break;
+      }
     }
 
     return chosenFormat;
@@ -124,57 +141,19 @@ namespace Core::Graphics {
   VkPresentModeKHR VulkanWindow::choosePresentMode() const {
     std::uint32_t presentModesCount = 0;
     vkGetPhysicalDeviceSurfacePresentModesKHR(
-      device.getPhysicalDevice(), surface, &presentModesCount, nullptr
+      device.physicalDevice, surface, &presentModesCount, nullptr
     );
 
     std::vector<VkPresentModeKHR> presentModes(presentModesCount);
     vkGetPhysicalDeviceSurfacePresentModesKHR(
-      device.getPhysicalDevice(), surface, &presentModesCount, presentModes.data()
+      device.physicalDevice, surface, &presentModesCount, presentModes.data()
     );
 
     // FIFO is guaranteed to be present
     VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    // if (!options.vsync && std::ranges::find(presentModes, VK_PRESENT_MODE_IMMEDIATE_KHR) != presentModes.end())
-    //   presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+    if (!options.vsync && std::ranges::find(presentModes, VK_PRESENT_MODE_IMMEDIATE_KHR) != presentModes.end())
+      presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
 
     return presentMode;
-  }
-
-  VkImageView VulkanWindow::createImageView(
-    const VkImage &image,
-    const VkFormat &format,
-    VkImageAspectFlags aspectFlags,
-    VkImageViewType viewType,
-    std::uint32_t layerCount,
-    std::uint32_t mipLevels
-  ) const {
-    VkImageViewCreateInfo createInfo{
-      .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-      .image = image,
-      .viewType = viewType,
-      .format = format,
-      .components = {
-        .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-        .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-        .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-        .a = VK_COMPONENT_SWIZZLE_IDENTITY
-      },
-      .subresourceRange = {
-        .aspectMask = aspectFlags,
-        .baseMipLevel = 0,
-        .levelCount = mipLevels,
-        .baseArrayLayer = 0,
-        .layerCount = layerCount
-      }
-    };
-
-    VkImageView imageView;
-    VULKAN_CHECK(vkCreateImageView(device.getDevice(), &createInfo, nullptr, &imageView));
-
-    return imageView;
-  }
-
-  void VulkanWindow::destroyImageView(const VkImageView &imageView) const {
-    vkDestroyImageView(device.getDevice(), imageView, nullptr);
   }
 }

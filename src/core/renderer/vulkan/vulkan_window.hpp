@@ -1,5 +1,6 @@
 #pragma once
 #include "../window.hpp"
+#include <core/renderer/pixel_format.hpp>
 #include "vulkan_device.hpp"
 
 namespace Core::Graphics {
@@ -40,35 +41,33 @@ namespace Core::Graphics {
 
       VulkanWindow &operator=(VulkanWindow &&other) = delete;
 
-      ~VulkanWindow();
-    
+      ~VulkanWindow() override;
+
+      void render() override;
+
     private:
-      VkImageView createImageView(
-        const VkImage &image,
-        const VkFormat &format,
-        VkImageAspectFlags aspectFlags,
-        VkImageViewType viewType,
-        std::uint32_t layerCount,
-        std::uint32_t mipLevels
-      ) const;
-
-      void destroyImageView(const VkImageView &imageView) const;
-
-      void createSurface();
-
       void createSwapChain();
 
-      VkSurfaceFormatKHR chooseSurfaceFormat() const;
+      PixelFormat chooseSurfaceFormat() const;
 
       VkPresentModeKHR choosePresentMode() const;
 
       const VkInstance &instance;
       const VulkanDevice &device;
 
+      // Makes Queue execution wait until the acquired image is done presenting
+      std::vector<VkSemaphore> imageReadySemaphores;
+      std::vector<VkSemaphore> renderFinishedSemaphores;
+      std::vector<VkFence> imageFences;
+
       VkSurfaceKHR surface = VK_NULL_HANDLE;
       VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 
+      std::uint32_t swapChainImageCount = 0;
+
       std::vector<VkImage> swapChainImages;
       std::vector<VkImageView> swapChainImageViews;
+
+      size_t currentSemaphoreIndex = 0;
   };
 }

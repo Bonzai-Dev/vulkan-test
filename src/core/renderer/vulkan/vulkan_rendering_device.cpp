@@ -1,7 +1,7 @@
 #include <map>
 #include <SDL3/SDL_vulkan.h>
 #include <core/application/application.hpp>
-#include <core/logger.hpp>
+#include <core/application/logger.hpp>
 #include "vulkan_rendering_device.hpp"
 #include "vulkan_window.hpp"
 
@@ -15,43 +15,8 @@ namespace Core::Graphics {
       return;
     }
 
-    createInstance(appName, getExtensions(), getInstanceLayers());
-
-    currentDevice = chooseDevice();
-    currentDevice->createLogicalDevice();
-
-    LOG_CORE_INFO("Rendering using {}", currentDevice->getName());
-
-    const std::uint32_t version = currentDevice->getProperties().apiVersion;
-    LOG_CORE_DEBUG(
-      "{} supports Vulkan up to {}.{}.{}",
-      currentDevice->getName(),
-      VK_VERSION_MAJOR(version), VK_VERSION_MINOR(version),
-      VK_VERSION_PATCH(version)
-    );
-  }
-
-  VulkanRenderingDevice::~VulkanRenderingDevice() {
-    if (debugMessenger)
-      vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-  }
-
-  void VulkanRenderingDevice::createWindow(const WindowOptions &options) {
-    VulkanWindow window = VulkanWindow(*currentDevice, instance, displayInfo, options);
-    windows.emplace(window.getId(), std::move(window));
-  }
-
-  void VulkanRenderingDevice::render() {
-    for (auto &[windowId, window]: windows)
-      window.render();
-  }
-
-  void VulkanRenderingDevice::createInstance(
-    const char *appName,
-    const std::vector<const char*> &extensions,
-    const std::vector<const char*> &layers
-  ) {
     // Creating vulkan instance
+    VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
     const VkApplicationInfo appInfo{
       .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
       .pApplicationName = appName,
@@ -64,13 +29,12 @@ namespace Core::Graphics {
     VkInstanceCreateInfo createInfo{
       .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
       .pApplicationInfo = &appInfo,
-      .enabledLayerCount = static_cast<uint32_t>(layers.size()),
-      .ppEnabledLayerNames = layers.data(),
-      .enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
-      .ppEnabledExtensionNames = extensions.data()
+      .enabledLayerCount = static_cast<uint32_t>(getInstanceLayers().size()),
+      .ppEnabledLayerNames = getInstanceLayers().data(),
+      .enabledExtensionCount = static_cast<uint32_t>(getExtensions().size()),
+      .ppEnabledExtensionNames = getExtensions().data()
     };
 
-    // Setting up debug messenger
     VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo{};
     if (validationLayersEnabled()) {
       debugMessengerCreateInfo = {
@@ -82,7 +46,7 @@ namespace Core::Graphics {
         .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
                        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-        .pfnUserCallback = &VulkanRenderingDevice::debugCallback,
+        .pfnUserCallback = &VulkanDevice::debugCallback,
         .pUserData = nullptr
       };
       createInfo.pNext = &debugMessengerCreateInfo;
@@ -92,87 +56,59 @@ namespace Core::Graphics {
     volkLoadInstanceOnly(instance);
 
     if (validationLayersEnabled())
-      VULKAN_CHECK(vkCreateDebugUtilsMessengerEXT(instance, &debugMessengerCreateInfo, nullptr, &debugMessenger));
-  }
+      VULKAN_CHECK(vkCreateDebugUtilsMessengerEXT(
+        instance, &debugMessengerCreateInfo, nullptr, &debugMessenger
+      ));
 
-  std::vector<VulkanDevice> &VulkanRenderingDevice::getDevices() const {
-    static bool deviceFetched = false;
-    static std::vector<VulkanDevice> devices;
-
-    if (deviceFetched)
-      return devices;
-
+    // Loading devices
     std::vector<VkPhysicalDevice> physicalDevices;
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-    if (deviceCount == 0) {
+    if (deviceCount == 0)
       LOG_CORE_CRITICAL("Cannot find any GPUs with Vulkan support");
-      return devices;
-    }
+
     physicalDevices.resize(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data());
 
     for (size_t deviceIndex = 0; deviceIndex < deviceCount; deviceIndex++) {
-      VulkanDevice device(instance);
-      device.createPhysicalDevice(physicalDevices[deviceIndex]);
-      devices.push_back(std::move(device));
-      LOG_CORE_INFO("Found {}", devices[deviceIndex].getName());
+      devices.emplace_back(std::make_unique<VulkanDevice>(*this));
+      devices[deviceIndex]->createPhysicalDevice(physicalDevices[deviceIndex]);
+      LOG_CORE_INFO("Found {}", devices[deviceIndex]->getName());
     }
 
     if (devices.empty()) {
       LOG_CORE_CRITICAL("No suitable Vulkan devices found");
-      return devices;
+      return;
     }
 
-    deviceFetched = true;
+    for (auto &device: devices)
+      deviceRankings.insert({rateDevice(device.get()), device.get()});
 
-    return devices;
+    currentDevice = deviceRankings.rbegin()->second;
+    currentDevice->createLogicalDevice(debugMessenger);
+
+    LOG_CORE_INFO("Rendering using {}", currentDevice->getName());
+
+    const std::uint32_t version = currentDevice->getProperties().apiVersion;
+    LOG_CORE_DEBUG(
+      "{} supports Vulkan up to {}.{}.{}",
+      currentDevice->getName(),
+      VK_VERSION_MAJOR(version), VK_VERSION_MINOR(version),
+      VK_VERSION_PATCH(version)
+    );
   }
 
-  VulkanDevice *VulkanRenderingDevice::chooseDevice() {
-    static bool deviceChosen = false;
-    static std::map<int, VulkanDevice*> deviceRankings;
-    if (deviceChosen)
-      return deviceRankings.rbegin()->second;
-
-    for (auto &device: getDevices())
-      deviceRankings.insert({rateDevice(device), &device});
-
-    deviceChosen = true;
-    return deviceRankings.rbegin()->second;
+  void VulkanRenderingDevice::createWindow(const WindowOptions &options) {
+    VulkanWindow window = VulkanWindow(*currentDevice, instance, displayInfo, options);
+    windows.emplace(window.getId(), std::move(window));
   }
 
-  VkBool32 VulkanRenderingDevice::debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT *callbackData,
-    void *userData
-  ) {
-    switch (messageSeverity) {
-      case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-        LOG_CORE_TRACE("Vulkan {}", callbackData->pMessage);
-        break;
-
-      case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-        LOG_CORE_INFO("Vulkan {}", callbackData->pMessage);
-        break;
-
-      case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-        LOG_CORE_WARNING("Vulkan {}", callbackData->pMessage);
-        break;
-
-      case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-        LOG_CORE_ERROR("Vulkan {}", callbackData->pMessage);
-        break;
-
-      default:
-        break;
-    }
-
-    return VK_FALSE;
+  void VulkanRenderingDevice::render() {
+    for (auto &[windowId, window]: windows)
+      window.render();
   }
 
-  std::vector<const char*> VulkanRenderingDevice::getInstanceLayers() {
+  const std::vector<const char*> &VulkanRenderingDevice::getInstanceLayers() {
     static bool foundLayers = false;
     static std::vector<const char*> instanceLayers;
 
@@ -203,7 +139,7 @@ namespace Core::Graphics {
     return instanceLayers;
   }
 
-  std::vector<const char*> VulkanRenderingDevice::getExtensions() {
+   const std::vector<const char*> &VulkanRenderingDevice::getExtensions() {
     static bool foundExtensions = false;
     static uint32_t extensionCount = 0;
     static char const *const*extensions = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
@@ -226,11 +162,11 @@ namespace Core::Graphics {
     return extensionList;
   }
 
-  int VulkanRenderingDevice::rateDevice(const VulkanDevice &device) {
+  int VulkanRenderingDevice::rateDevice(const VulkanDevice *device) {
     int score = 0;
 
-    const VkPhysicalDeviceProperties deviceProperties = device.getProperties();
-    const VkPhysicalDeviceFeatures deviceFeatures = device.getFeatures();
+    const VkPhysicalDeviceProperties deviceProperties = device->getProperties();
+    const VkPhysicalDeviceFeatures deviceFeatures = device->getFeatures();
 
     // Discrete GPUs have a significant performance advantage
     if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
@@ -246,7 +182,23 @@ namespace Core::Graphics {
     return score;
   }
 
-  std::string vulkanResultToString(VkResult result) {
+  VkFormat VulkanRenderingDevice::convertPixelFormat(PixelFormat format) {
+    VkFormat converted = VK_FORMAT_UNDEFINED;
+    switch (format) {
+      case PixelFormat::R8G8B8A8:
+        converted = VK_FORMAT_R8G8B8A8_UNORM;
+        break;
+      case PixelFormat::B8G8R8A8:
+        converted = VK_FORMAT_B8G8R8A8_UNORM;
+        break;
+      default:
+        break;
+    }
+
+    return converted;
+  }
+
+  std::string VulkanRenderingDevice::vulkanResultToString(VkResult result) {
     switch (result) {
       case VK_SUCCESS: return "VK_SUCCESS";
       case VK_NOT_READY: return "VK_NOT_READY";

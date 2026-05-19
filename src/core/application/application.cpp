@@ -1,8 +1,8 @@
 #include <SDL3/SDL.h>
-#include <core/logger.hpp>
-#include <core/events/application.hpp>
-#include <core/events/window.hpp>
-#include <core/events/input.hpp>
+#include <core/application/logger.hpp>
+#include <core/events/application_events.hpp>
+#include <core/events/window_events.hpp>
+#include <core/events/input_events.hpp>
 #include <core/renderer/vulkan/vulkan_rendering_device.hpp>
 #include "application.hpp"
 

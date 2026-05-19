@@ -1,5 +1,5 @@
 #pragma once
-#include "window.hpp"
+#include "window_events.hpp"
 #include "event.hpp"
 
 namespace Core::Events {

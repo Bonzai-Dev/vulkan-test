@@ -1,6 +1,7 @@
 #pragma once
-#include <core/events/window.hpp>
-#include <core/events/input.hpp>
+#include <core/events/window_events.hpp>
+#include <core/events/input_events.hpp>
+#include "pixel_format.hpp"
 #include "window.hpp"
 
 using namespace Core::Events;
