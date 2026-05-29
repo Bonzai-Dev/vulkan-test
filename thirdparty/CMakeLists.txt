@@ -25,7 +25,16 @@ add_subdirectory(glm)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glm::glm)
 
 # Vulkan
-find_package(Vulkan REQUIRED)
-target_compile_definitions(${PROJECT_NAME} PRIVATE VK_NO_PROTOTYPES)
-target_include_directories(${PROJECT_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Vulkan::Vulkan Vulkan::Headers)
+find_path(VULKAN_INCLUDE_DIRECTORY NAMES vulkan/vulkan.h PATHS "$ENV{VULKAN_SDK}/include" NO_DEFAULT_PATH)
+find_library(VULKAN_LIBRARY NAMES vulkan PATHS "$ENV{VULKAN_SDK}/lib" NO_DEFAULT_PATH)
+if (VULKAN_LIBRARY AND VULKAN_INCLUDE_DIRECTORY)
+    message(STATUS "Found Vulkan SDK at ${VULKAN_LIBRARY}")
+else ()
+    message(STATUS "Vulkan SDK not found")
+endif ()
+
+add_library(Vulkan::Vulkan UNKNOWN IMPORTED)
+set_target_properties(
+    Vulkan::Vulkan PROPERTIES IMPORTED_LOCATION "${VULKAN_LIBRARY}" INTERFACE_INCLUDE_DIRECTORIES "${VULKAN_INCLUDE_DIRECTORY}"
+)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Vulkan::Vulkan)

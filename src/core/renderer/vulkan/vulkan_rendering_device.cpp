@@ -8,178 +8,48 @@
 using namespace Core::Events;
 
 namespace Core::Graphics {
-  VulkanRenderingDevice::VulkanRenderingDevice(const char *appName, const DisplayInfo &displayInfo) :
-  RenderingDevice(appName, displayInfo) {
-    if (volkInitialize() != VK_SUCCESS) {
-      LOG_CORE_CRITICAL("Failed to load Vulkan. Vulkan drivers may be missing on your system");
-      return;
-    }
+  VulkanRenderingDevice::VulkanRenderingDevice(const char *appName, const DisplayInfo &displayInfo) : appName(appName),
+  displayInfo(displayInfo) {
+    EventDispatcher::listen<WindowShown>([&](const WindowShown &event) { onWindowShow(event); });
+    EventDispatcher::listen<WindowHidden>([&](const WindowHidden &event) { onWindowHide(event); });
+    EventDispatcher::listen<WindowResized>([&](const WindowResized &event) { onWindowResize(event); });
 
-    // Creating vulkan instance
-    VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
-    const VkApplicationInfo appInfo{
-      .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-      .pApplicationName = appName,
-      .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-      .pEngineName = "Vulkan renderer",
-      .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-      .apiVersion = VK_MAKE_VERSION(1, 3, 0),
-    };
+    EventDispatcher::listen<WindowMouseEnter>([&](const WindowMouseEnter &event) { onWindowMouseEnter(event); });
+    EventDispatcher::listen<WindowMouseLeave>([&](const WindowMouseLeave &event) { onWindowMouseLeave(event); });
+    EventDispatcher::listen<WindowMouseMotion>([&](const WindowMouseMotion &event) { onWindowMouseMotion(event); });
 
-    VkInstanceCreateInfo createInfo{
-      .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-      .pApplicationInfo = &appInfo,
-      .enabledLayerCount = static_cast<uint32_t>(getInstanceLayers().size()),
-      .ppEnabledLayerNames = getInstanceLayers().data(),
-      .enabledExtensionCount = static_cast<uint32_t>(getExtensions().size()),
-      .ppEnabledExtensionNames = getExtensions().data()
-    };
+    EventDispatcher::listen<WindowFocusGained>([&](const WindowFocusGained &event) { onWindowFocusGained(event); });
+    EventDispatcher::listen<WindowFocusLost>([&](const WindowFocusLost &event) { onWindowFocusLost(event); });
+    EventDispatcher::listen<WindowMinimized>([&](const WindowMinimized &event) { onWindowMinimized(event); });
+    EventDispatcher::listen<WindowMaximized>([&](const WindowMaximized &event) { onWindowMaximized(event); });
+    EventDispatcher::listen<WindowRestored>([&](const WindowRestored &event) { onWindowRestored(event); });
+    EventDispatcher::listen<WindowClosed>([&](const WindowClosed &event) { onWindowClose(event); });
+    EventDispatcher::listen<WindowExposed>([&](const WindowExposed &event) { onWindowExposed(event); });
 
-    VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo{};
-    if (validationLayersEnabled()) {
-      debugMessengerCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-        .pNext = nullptr,
-        .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-                           VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                           VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-        .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                       VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                       VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-        .pfnUserCallback = &VulkanDevice::debugCallback,
-        .pUserData = nullptr
-      };
-      createInfo.pNext = &debugMessengerCreateInfo;
-    }
+    EventDispatcher::listen<KeyPressedEvent>([&](const KeyPressedEvent &event) { onKeyPressed(event); });
+    EventDispatcher::listen<KeyReleasedEvent>([&](const KeyReleasedEvent &event) { onKeyReleased(event); });
 
-    VULKAN_CHECK(vkCreateInstance(&createInfo, nullptr, &instance));
-    volkLoadInstanceOnly(instance);
+    vkb::InstanceBuilder instanceBuilder;
+    auto instanceResult = instanceBuilder.set_app_name(appName)
+    .request_validation_layers(true)
+    .use_default_debug_messenger()
+    .require_api_version(1, 3, 0)
+    .build();
 
-    if (validationLayersEnabled())
-      VULKAN_CHECK(vkCreateDebugUtilsMessengerEXT(
-        instance, &debugMessengerCreateInfo, nullptr, &debugMessenger
-      ));
-
-    // Loading devices
-    std::vector<VkPhysicalDevice> physicalDevices;
-    uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-    if (deviceCount == 0)
-      LOG_CORE_CRITICAL("Cannot find any GPUs with Vulkan support");
-
-    physicalDevices.resize(deviceCount);
-    vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data());
-
-    for (size_t deviceIndex = 0; deviceIndex < deviceCount; deviceIndex++) {
-      devices.emplace_back(std::make_unique<VulkanDevice>(*this));
-      devices[deviceIndex]->createPhysicalDevice(physicalDevices[deviceIndex]);
-      LOG_CORE_INFO("Found {}", devices[deviceIndex]->getName());
-    }
-
-    if (devices.empty()) {
-      LOG_CORE_CRITICAL("No suitable Vulkan devices found");
-      return;
-    }
-
-    for (auto &device: devices)
-      deviceRankings.insert({rateDevice(device.get()), device.get()});
-
-    currentDevice = deviceRankings.rbegin()->second;
-    currentDevice->createLogicalDevice(debugMessenger);
-
-    LOG_CORE_INFO("Rendering using {}", currentDevice->getName());
-
-    const std::uint32_t version = currentDevice->getProperties().apiVersion;
-    LOG_CORE_DEBUG(
-      "{} supports Vulkan up to {}.{}.{}",
-      currentDevice->getName(),
-      VK_VERSION_MAJOR(version), VK_VERSION_MINOR(version),
-      VK_VERSION_PATCH(version)
-    );
+    instance = instanceResult.value().instance;
+    debugMessenger = instanceResult.value().debug_messenger;
   }
 
-  void VulkanRenderingDevice::createWindow(const WindowOptions &options) {
-    VulkanWindow window = VulkanWindow(*currentDevice, instance, displayInfo, options);
-    windows.emplace(window.getId(), std::move(window));
+  VulkanRenderingDevice::~VulkanRenderingDevice() {
+
   }
 
   void VulkanRenderingDevice::render() {
-    for (auto &[windowId, window]: windows)
-      window.render();
+
   }
 
-  const std::vector<const char*> &VulkanRenderingDevice::getInstanceLayers() {
-    static bool foundLayers = false;
-    static std::vector<const char*> instanceLayers;
+  void VulkanRenderingDevice::createWindow(const WindowOptions &options) {
 
-    if (foundLayers)
-      return instanceLayers;
-
-    const char *validationLayer = "VK_LAYER_KHRONOS_validation";
-    uint32_t instanceLayerPropertyCount;
-    vkEnumerateInstanceLayerProperties(&instanceLayerPropertyCount, nullptr);
-    std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerPropertyCount);
-    vkEnumerateInstanceLayerProperties(&instanceLayerPropertyCount, instanceLayerProperties.data());
-    for (size_t layerIndex = 0; layerIndex < instanceLayerPropertyCount; layerIndex++) {
-      const std::string layerName = instanceLayerProperties[layerIndex].layerName;
-      if (Application::debugEnabled && layerName == validationLayer) {
-        validationLayersSupported = true;
-        instanceLayers.push_back(validationLayer);
-      }
-      LOG_CORE_DEBUG("Found instance layer \"{}\"", layerName);
-    }
-
-    if constexpr (Application::debugEnabled) {
-      if (std::ranges::find(instanceLayers, validationLayer) != instanceLayers.end())
-        LOG_CORE_INFO("Validation layer \"{}\" has been found", validationLayer);
-      else
-        LOG_CORE_WARNING("Validation layers for Vulkan has been requested while in debug mode, but are not available");
-    }
-
-    return instanceLayers;
-  }
-
-   const std::vector<const char*> &VulkanRenderingDevice::getExtensions() {
-    static bool foundExtensions = false;
-    static uint32_t extensionCount = 0;
-    static char const *const*extensions = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
-    static std::vector<const char*> extensionList(extensions, extensions + extensionCount);
-
-    if (foundExtensions)
-      return extensionList;
-
-    if (validationLayersEnabled()) {
-      extensionList.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-      extensionList.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-    }
-
-    if (Application::debugEnabled) {
-      for (auto &extension: extensionList)
-        LOG_CORE_DEBUG("Found extension \"{}\"", extension);
-    }
-
-    foundExtensions = true;
-    return extensionList;
-  }
-
-  int VulkanRenderingDevice::rateDevice(const VulkanDevice *device) {
-    int score = 0;
-
-    const VkPhysicalDeviceProperties deviceProperties = device->getProperties();
-    const VkPhysicalDeviceFeatures deviceFeatures = device->getFeatures();
-
-    // Discrete GPUs have a significant performance advantage
-    if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-      score += 1000;
-
-    // Maximum possible size of textures affects graphics quality
-    score += static_cast<int>(deviceProperties.limits.maxImageDimension2D);
-
-    // Application can't function without geometry shaders
-    if (!deviceFeatures.geometryShader)
-      return 0;
-
-    return score;
   }
 
   VkFormat VulkanRenderingDevice::convertPixelFormat(PixelFormat format) {

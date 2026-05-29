@@ -2,8 +2,8 @@
 #include <memory>
 #include <core/application/logger.hpp>
 #include <core/events/application_events.hpp>
-#include <core/renderer/rendering_device.hpp>
-#include <core/renderer/window.hpp>
+#include <core/renderer/vulkan/vulkan_rendering_device.hpp>
+#include <core/renderer/vulkan/vulkan_window.hpp>
 #include "layer.hpp"
 
 namespace Core {
@@ -47,12 +47,12 @@ namespace Core {
       void pollInputs() const;
 
       Graphics::Backend selectGraphicsBackend() const;
-      std::shared_ptr<Graphics::RenderingDevice> renderingDevice;
+      std::shared_ptr<Graphics::VulkanRenderingDevice> renderingDevice;
 
       Logger logger;
 
       const char *name;
-      mutable EventDispatcher eventDispatcher;
+      mutable Events::EventDispatcher eventDispatcher;
 
       mutable std::vector<std::unique_ptr<Layer>> layers;
 

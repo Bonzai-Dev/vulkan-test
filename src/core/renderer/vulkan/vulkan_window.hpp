@@ -1,33 +1,12 @@
 #pragma once
-#include "../window.hpp"
-#include <core/renderer/pixel_format.hpp>
-#include "vulkan_device.hpp"
+#include <cstdint>
+#include <SDL3/SDL_mouse.h>
+#include <core/renderer/window.hpp>
 
 namespace Core::Graphics {
-  class VulkanWindow: public Window {
-    enum SwapChainStatus {
-      /// We already called VulkanWindow::acquireNextImage.
-      ///
-      /// Can only go into this state if we're coming from SwapchainReleased
-      SwapChainAcquired,
-      /// We already called VulkanWindow::getImageAcquiredSemaphore.
-      /// Further calls to getImageAcquiredSemaphore will return null.
-      /// It is rendering or intends to into this swapchain.
-      ///
-      /// Can only go into this state if we're coming from SwapchainAcquired
-      SwapChainUsedInRendering,
-      /// We've come from SwapchainUsedInRendering and are waiting for
-      /// VulkanDevice::commitAndNextCommandBuffer to present us
-      SwapChainPendingSwap,
-      /// We don't own a swapchain. Cannot render to this window.
-      ///
-      /// This status should not last long unless we're not initialized yet.
-      SwapChainReleased
-    };
-    
+  class VulkanWindow {
     public:
       VulkanWindow(
-       const VulkanDevice &device,
        const VkInstance &instance,
        const DisplayInfo &displayInfo,
        const WindowOptions &windowOptions
@@ -37,37 +16,58 @@ namespace Core::Graphics {
 
       VulkanWindow &operator=(const VulkanWindow &other) = delete;
 
-      VulkanWindow(VulkanWindow &&other) = delete;
+      VulkanWindow(VulkanWindow &&other) noexcept;
 
       VulkanWindow &operator=(VulkanWindow &&other) = delete;
 
-      ~VulkanWindow() override;
+      ~VulkanWindow();
 
-      void render() override;
+      WindowOptions options;
+
+      void render();
+
+      void show() { shown = true; }
+
+      void hide() { shown = false; }
+
+      void focusMouse() { mouseFocused = true; }
+
+      void unfocusMouse() { mouseFocused = false; }
+
+      void focusKeyboard() { keyboardFocused = true; }
+
+      void unfocusKeyboard() { keyboardFocused = false; }
+
+      void minimize() { minimized = true; }
+
+      void maximize() { minimized = false; }
+
+      void resize(std::uint32_t width, std::uint32_t height) {
+        options.width = width;
+        options.height = height;
+      }
+
+      void restore() { minimized = false; }
+
+      void close() const { SDL_HideWindow(window); }
+
+      void lockMouse() const { SDL_SetWindowRelativeMouseMode(window, true); }
+
+      void unlockMouse() const { SDL_SetWindowRelativeMouseMode(window, false); }
+
+      std::uint32_t getId() const { return SDL_GetWindowID(window); }
 
     private:
-      void createSwapChain();
-
-      PixelFormat chooseSurfaceFormat() const;
-
-      VkPresentModeKHR choosePresentMode() const;
-
       const VkInstance &instance;
-      const VulkanDevice &device;
 
-      // Makes Queue execution wait until the acquired image is done presenting
-      std::vector<VkSemaphore> imageReadySemaphores;
-      std::vector<VkSemaphore> renderFinishedSemaphores;
-      std::vector<VkFence> imageFences;
+      bool minimized = false;
+      bool shown = false;
+      bool mouseFocused = false; // Whether if the mouse is in the window or not
+      bool keyboardFocused = false;
 
-      VkSurfaceKHR surface = VK_NULL_HANDLE;
-      VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+      const DisplayInfo &displayInfo;
 
-      std::uint32_t swapChainImageCount = 0;
-
-      std::vector<VkImage> swapChainImages;
-      std::vector<VkImageView> swapChainImageViews;
-
-      size_t currentSemaphoreIndex = 0;
+      SDL_Window *window = nullptr;
+      std::uint64_t windowFlags = 0;
   };
 }
