@@ -1,28 +1,41 @@
 #pragma once
 #include <cstdint>
+#include <vector>
+#include <vulkan/vulkan.h>
 #include <SDL3/SDL_mouse.h>
 #include <core/renderer/window.hpp>
+#include "vulkan_device.hpp"
 
 namespace Core::Graphics {
+  struct VulkanFrameData {
+    VkCommandPool commandPool;
+    VkCommandBuffer commandBuffer;
+    VkSemaphore swapChainSemaphore, renderSemaphore;
+    VkFence renderFence;
+  };
+
   class VulkanWindow {
     public:
       VulkanWindow(
-       const VkInstance &instance,
-       const DisplayInfo &displayInfo,
-       const WindowOptions &windowOptions
+        const VulkanDevice &device,
+        const VkInstance &instance,
+        const DisplayInfo &displayInfo,
+        const WindowOptions &windowOptions
       );
 
       VulkanWindow(const VulkanWindow &other) = delete;
 
       VulkanWindow &operator=(const VulkanWindow &other) = delete;
 
-      VulkanWindow(VulkanWindow &&other) noexcept;
+      VulkanWindow(VulkanWindow &&other) = delete;
 
       VulkanWindow &operator=(VulkanWindow &&other) = delete;
 
-      ~VulkanWindow();
+      ~VulkanWindow() = default;
 
       WindowOptions options;
+
+      void destroy() const;
 
       void render();
 
@@ -59,6 +72,14 @@ namespace Core::Graphics {
 
     private:
       const VkInstance &instance;
+      const VulkanDevice &device;
+      VkSwapchainKHR swapChain;
+      VkSurfaceKHR surface = VK_NULL_HANDLE;
+      VkFormat swapChainFormat;
+
+      std::vector<VkImage> swapChainImages;
+      std::vector<VkImageView> swapChainImageViews;
+      VkExtent2D swapChainExtent;
 
       bool minimized = false;
       bool shown = false;

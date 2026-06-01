@@ -3,8 +3,12 @@
 #include "vulkan_rendering_device.hpp"
 
 namespace Core::Graphics {
-  VulkanWindow::VulkanWindow(const VkInstance &instance, const DisplayInfo &displayInfo, const WindowOptions &windowOptions) :
-  options(windowOptions), instance(instance), displayInfo(displayInfo) {
+  VulkanWindow::VulkanWindow(
+    const VulkanDevice &device,
+    const VkInstance &instance,
+    const DisplayInfo &displayInfo,
+    const WindowOptions &windowOptions
+  ) : options(windowOptions), instance(instance), device(device), displayInfo(displayInfo) {
     std::uint32_t width = options.width;
     std::uint32_t height = options.height;
 
@@ -27,20 +31,35 @@ namespace Core::Graphics {
       return;
     }
 
+    SDL_Vulkan_CreateSurface(window, instance, nullptr, &surface);
+    vkb::SwapchainBuilder swapChainBuilder { device.getPhysicalDevice(), device.getDevice(), surface };
+    swapChainFormat = VK_FORMAT_B8G8R8A8_UNORM;
+
+    vkb::Swapchain vkbSwapChain = swapChainBuilder
+      //.use_default_format_selection()
+      .set_desired_format(VkSurfaceFormatKHR{ .format = swapChainFormat, .colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR })
+      //use vsync present mode
+      .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
+      .set_desired_extent(options.width, options.height)
+      .add_image_usage_flags(VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+      .build()
+      .value();
+
+    swapChain = vkbSwapChain.swapchain;
+    swapChainExtent = vkbSwapChain.extent;
+    swapChainImages = vkbSwapChain.get_images().value();
+    swapChainImageViews = vkbSwapChain.get_image_views().value();
+
     SDL_SetWindowRelativeMouseMode(window, options.mouseLocked);
   }
 
-  VulkanWindow::VulkanWindow(VulkanWindow &&other) noexcept :
-    instance(other.instance),
-    mouseFocused(other.mouseFocused),
-    keyboardFocused(other.keyboardFocused),
-    displayInfo(other.displayInfo),
-    window(other.window),
-    windowFlags(other.windowFlags) {
-    other.window = nullptr;
-  }
+  void VulkanWindow::destroy() const {
+    vkDestroySwapchainKHR(device.getDevice(), swapChain, nullptr);
+    for (int i = 0; i < swapChainImageViews.size(); i++)
+      vkDestroyImageView(device.getDevice(), swapChainImageViews[i], nullptr);
 
-  VulkanWindow::~VulkanWindow() {
+    vkDestroySurfaceKHR(instance, surface, nullptr);
+
     SDL_DestroyWindow(window);
   }
 

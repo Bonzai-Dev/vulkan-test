@@ -26,15 +26,17 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glm::glm)
 
 # Vulkan
 find_path(VULKAN_INCLUDE_DIRECTORY NAMES vulkan/vulkan.h PATHS "$ENV{VULKAN_SDK}/include" NO_DEFAULT_PATH)
-find_library(VULKAN_LIBRARY NAMES vulkan PATHS "$ENV{VULKAN_SDK}/lib" NO_DEFAULT_PATH)
+find_library(VULKAN_LIBRARY NAMES vulkan PATHS "$ENV{VULKAN_SDK}/lib/VulkanLoader/lib" NO_DEFAULT_PATH)
 if (VULKAN_LIBRARY AND VULKAN_INCLUDE_DIRECTORY)
-    message(STATUS "Found Vulkan SDK at ${VULKAN_LIBRARY}")
+    message(STATUS "Found Vulkan library at ${VULKAN_LIBRARY}")
+    message(STATUS "Found Vulkan include directory at ${VULKAN_INCLUDE_DIRECTORY}")
+    message(STATUS "Found Vulkan SDK at $ENV{VULKAN_SDK}")
 else ()
-    message(STATUS "Vulkan SDK not found")
+    message(STATUS "Vulkan SDK not found. Check if environment variables are set properly.")
 endif ()
 
 add_library(Vulkan::Vulkan UNKNOWN IMPORTED)
 set_target_properties(
-    Vulkan::Vulkan PROPERTIES IMPORTED_LOCATION "${VULKAN_LIBRARY}" INTERFACE_INCLUDE_DIRECTORIES "${VULKAN_INCLUDE_DIRECTORY}"
+    Vulkan::Vulkan PROPERTIES IMPORTED_LOCATION ${VULKAN_LIBRARY} INTERFACE_INCLUDE_DIRECTORIES ${VULKAN_INCLUDE_DIRECTORY}
 )
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Vulkan::Vulkan)

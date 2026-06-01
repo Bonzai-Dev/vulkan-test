@@ -38,10 +38,61 @@ namespace Core::Graphics {
 
     instance = instanceResult.value().instance;
     debugMessenger = instanceResult.value().debug_messenger;
+
+    // Vulkan 1.3 features
+    VkPhysicalDeviceVulkan13Features features {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES
+    };
+    features.dynamicRendering = true;
+    features.synchronization2 = true;
+
+    // Vulkan 1.2 features
+    VkPhysicalDeviceVulkan12Features features12{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+    features12.bufferDeviceAddress = true;
+    features12.descriptorIndexing = true;
+
+    vkb::PhysicalDeviceSelector selector { instanceResult.value() };
+    vkb::PhysicalDevice physicalDevice = selector
+      .set_minimum_version(1, 3)
+      .set_required_features_13(features)
+      .set_required_features_12(features12)
+      .defer_surface_initialization()
+      .select()
+      .value();
+
+    vkb::DeviceBuilder deviceBuilder{ physicalDevice };
+    auto deviceResult = deviceBuilder.build();
+    devices.emplace_back(std::make_unique<VulkanDevice>(deviceResult.value().device, physicalDevice.physical_device));
+    currentDevice = devices[0].get();
+
+    LOG_CORE_INFO("Selected {} as rendering device", physicalDevice.name);
+
+    auto systemInfo = vkb::SystemInfo::get_system_info();
+    if (systemInfo->validation_layers_available)
+      LOG_CORE_DEBUG("Validation layers are available");
+    else if (Application::debugEnabled)
+      LOG_CORE_WARNING("Validation layers were requested but are not available");
+
+    graphicsQueue.initialize(
+      currentDevice->getDevice(),
+      deviceResult.value().get_queue(vkb::QueueType::graphics).value(),
+      deviceResult.value().get_queue_index(vkb::QueueType::graphics).value(),
+      3
+    );
   }
 
   VulkanRenderingDevice::~VulkanRenderingDevice() {
+    if (!instance)
+      return;
 
+    graphicsQueue.destroy();
+
+    for (auto &[windowIndex, window] : windows)
+      window->destroy();
+
+    vkDestroyDevice(currentDevice->getDevice(), nullptr);
+    vkb::destroy_debug_utils_messenger(instance, debugMessenger);
+    vkDestroyInstance(instance, nullptr);
   }
 
   void VulkanRenderingDevice::render() {
@@ -49,7 +100,8 @@ namespace Core::Graphics {
   }
 
   void VulkanRenderingDevice::createWindow(const WindowOptions &options) {
-
+    std::unique_ptr<VulkanWindow> window = std::make_unique<VulkanWindow>(*currentDevice, instance, displayInfo, options);
+    windows.emplace(window->getId(), std::move(window));
   }
 
   VkFormat VulkanRenderingDevice::convertPixelFormat(PixelFormat format) {

@@ -7,10 +7,11 @@
 #include <core/events/input_events.hpp>
 #include <core/renderer/window.hpp>
 #include <core/renderer/pixel_format.hpp>
-#include "volk.h"
 #include "VkBootstrap.h"
 #include "vulkan_window.hpp"
 #include <vulkan/vulkan.h>
+#include "vulkan_device.hpp"
+#include "vulkan_queue.hpp"
 
 using namespace Core::Events;
 
@@ -29,17 +30,7 @@ namespace Core::Graphics {
 
       VulkanRenderingDevice &operator=(VulkanRenderingDevice &&other) noexcept = delete;
 
-      // const std::vector<const char*> &getExtensions();
-
       bool validationLayersEnabled() const { return validationLayersSupported; }
-      //
-      // VkInstance getInstance() const { return instance; }
-      //
-      // const VulkanDevice *getCurrentDevice() const { return currentDevice; }
-      //
-      // const std::vector<const char*> &getInstanceLayers();
-      //
-      // int rateDevice(const VulkanDevice *device);
 
       void createWindow(const WindowOptions &options);
 
@@ -53,24 +44,25 @@ namespace Core::Graphics {
       bool validationLayersSupported = false;
       const char *appName{};
       const DisplayInfo &displayInfo;
-      std::unordered_map<std::uint32_t, VulkanWindow> windows;
+      std::unordered_map<std::uint32_t, std::unique_ptr<VulkanWindow>> windows;
 
       VkInstance instance;
       VkDebugUtilsMessengerEXT debugMessenger;
-      VkPhysicalDevice currentGpu;
-      VkDevice device;
-      VkSurfaceKHR windowSurface;
+      VulkanDevice *currentDevice;
+      std::vector<std::unique_ptr<VulkanDevice>> devices;
+
+      VulkanQueue graphicsQueue;
 
       void onWindowShow(const WindowShown &event) {
-        windows.at(event.windowId).show();
+        windows[event.windowId]->show();
       }
 
       void onWindowHide(const WindowHidden &event) {
-        windows.at(event.windowId).hide();
+        windows[event.windowId]->hide();
       }
 
       void onWindowResize(const WindowResized &event) {
-        windows.at(event.windowId).resize(event.width, event.height);
+        windows[event.windowId]->resize(event.width, event.height);
       }
 
       void onWindowMouseMotion(const WindowMouseMotion &event) {
